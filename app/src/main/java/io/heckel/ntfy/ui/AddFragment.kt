@@ -18,6 +18,7 @@ import io.heckel.ntfy.BuildConfig
 import io.heckel.ntfy.R
 import io.heckel.ntfy.db.Repository
 import io.heckel.ntfy.db.User
+import io.heckel.ntfy.msg.AccountTokens
 import io.heckel.ntfy.msg.ApiService
 import io.heckel.ntfy.util.CertUtil
 import io.heckel.ntfy.util.*
@@ -337,7 +338,7 @@ class AddFragment : DialogFragment(), TrustedCertificateFragment.TrustedCertific
                 val authorized = api.checkAuth(baseUrl, topic, user)
                 if (authorized) {
                     Log.d(TAG, "Access granted for user ${user.username} to topic ${topicUrl(baseUrl, topic)}, adding to database")
-                    repository.addUser(user)
+                    repository.addUser(AccountTokens(activity?.applicationContext ?: return@launch).exchangePassword(user)) // Store a token, never the password
                     dismissDialog()
                 } else {
                     Log.w(TAG, "Access not allowed for user ${user.username} to topic ${topicUrl(baseUrl, topic)}")

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ntfy Sync launcher foreground: the ntfy speech bubble with sync arrows, centered in the 66dp safe zone -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+  <group android:translateX="26.5" android:translateY="26.5" android:scaleX="1.1" android:scaleY="1.1">
+    <path android:fillColor="#FFFFFFFF" android:pathData="m7.8399,6.35c-3.58,0 -6.6469,2.817 -6.6469,6.3983v0.003l0.0351,27.8668 -0.8991,6.6347 12.2261,-3.248L42.9487,44.0049c3.58,0 6.6469,-2.8208 6.6469,-6.4022v-24.8545c0,-3.5803 -3.0652,-6.3967 -6.6438,-6.3983h-0.0031zM7.8399,10.8662h35.1088,0.0031c1.2579,0.0013 2.1277,0.9164 2.1277,1.8821v24.8544c0,0.9666 -0.8714,1.8821 -2.1307,1.8821L11.8924,39.4849l-6.2114,1.8768 0.0633,-0.366 -0.0343,-28.2473c0,-0.9665 0.8706,-1.8821 2.13,-1.8821z"/>
+    <!-- Sync arrows (Material Icons "sync", Apache 2.0) instead of the original ">_" -->
+    <group android:translateX="13.9" android:translateY="13.8" android:scaleX="0.95" android:scaleY="0.95">
+        <path android:fillColor="#FFFFFFFF" android:pathData="M12,4V1L8,5l4,4V6c3.31,0 6,2.69 6,6 0,1.01 -0.25,1.97 -0.7,2.8l1.46,1.46C19.54,15.03 20,13.57 20,12c0,-4.42 -3.58,-8 -8,-8zM12,18c-3.31,0 -6,-2.69 -6,-6 0,-1.01 0.25,-1.97 0.7,-2.8L5.24,7.74C4.46,8.97 4,10.43 4,12c0,4.42 3.58,8 8,8v3l4,-4 -4,-4v3z"/>
+    </group>
+  </group>
+</vector>

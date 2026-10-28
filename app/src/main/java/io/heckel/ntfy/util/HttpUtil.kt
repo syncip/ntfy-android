@@ -5,6 +5,7 @@ import android.os.Build
 import io.heckel.ntfy.BuildConfig
 import io.heckel.ntfy.db.CustomHeader
 import io.heckel.ntfy.db.User
+import io.heckel.ntfy.msg.AccountTokens
 import okhttp3.Credentials
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -74,7 +75,9 @@ object HttpUtil {
         val builder = Request.Builder()
             .url(url)
             .addHeader("User-Agent", USER_AGENT)
-        if (user != null) {
+        if (user != null && AccountTokens.isToken(user.password)) {
+            builder.addHeader("Authorization", "Bearer ${user.password}")
+        } else if (user != null) {
             builder.addHeader("Authorization", Credentials.basic(user.username, user.password, UTF_8))
         }
         customHeaders.forEach { header ->

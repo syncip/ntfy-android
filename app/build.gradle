@@ -32,14 +32,32 @@ android {
         }
     }
 
+    // Release key lives outside the repo, see AENDERUNGEN.md. Override the location with
+    // ntfySync.keystoreProperties=<path> in local.properties.
+    def localProps = new Properties()
+    def localPropsFile = rootProject.file("local.properties")
+    if (localPropsFile.exists()) localPropsFile.withInputStream { localProps.load(it) }
+    def keystorePropsFile = file(localProps.getProperty("ntfySync.keystoreProperties",
+            "${System.getProperty("user.home")}/.ntfy-sync-signing/keystore.properties"))
+    signingConfigs {
+        release {
+            if (keystorePropsFile.exists()) {
+                def keystoreProps = new Properties()
+                keystorePropsFile.withInputStream { keystoreProps.load(it) }
+                storeFile file(keystoreProps["storeFile"])
+                storePassword keystoreProps["storePassword"]
+                keyAlias keystoreProps["keyAlias"]
+                keyPassword keystoreProps["keyPassword"]
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             shrinkResources false
             debuggable false
-            // DEV/TEST ONLY: Uncomment this to test the release build with a debug key.
-            //                This is required to test against the production Firebase config.
-            signingConfig signingConfigs.debug // Personal build: signed with the local debug key so the APK installs directly
+            signingConfig signingConfigs.release
         }
         debug {
             minifyEnabled false

@@ -36,7 +36,14 @@ class AccountSyncer(private val context: Context) {
 
     data class Result(val added: Int, val removed: Int)
 
+    /** Like [sync], but skipped if the last sync was less than [MIN_SYNC_INTERVAL_MILLIS] ago. */
+    suspend fun syncIfDue(): Result? {
+        if (System.currentTimeMillis() - lastSyncMillis < MIN_SYNC_INTERVAL_MILLIS) return null
+        return sync()
+    }
+
     suspend fun sync(): Result = mutex.withLock {
+        lastSyncMillis = System.currentTimeMillis()
         if (!repository.getAccountSyncEnabled()) {
             return Result(0, 0)
         }
@@ -45,7 +52,8 @@ class AccountSyncer(private val context: Context) {
         val newSubscriptions = mutableListOf<Subscription>()
         var removed = 0
 
-        repository.getUsers().forEach { user ->
+        repository.getUsers().forEach { storedUser ->
+            val user = migrateToToken(storedUser)
             val account = try {
                 fetchAccount(user)
             } catch (e: Exception) {
@@ -144,6 +152,22 @@ class AccountSyncer(private val context: Context) {
         repository.setAccountSyncedTopics((all - matching.toSet()).map { it.serialize() }.toSet())
     }
 
+    /** Users stored before token login still have a password; swap it for a token once. */
+    private suspend fun migrateToToken(user: User): User {
+        if (AccountTokens.isToken(user.password)) return user
+        return try {
+            val userWithToken = AccountTokens(context).exchangePassword(user)
+            if (userWithToken.password != user.password) {
+                repository.updateUser(userWithToken)
+                SubscriberServiceManager.refresh(context)
+            }
+            userWithToken
+        } catch (e: Exception) {
+            Log.w(TAG, "Unable to replace password with token for ${user.username}: ${e.message}")
+            user
+        }
+    }
+
     private suspend fun fetchAccount(user: User): AccountResponse? {
         val request = HttpUtil.requestBuilder(accountUrl(user.baseUrl), user, repository.getCustomHeaders(user.baseUrl)).build()
         HttpUtil.defaultClient(context, user.baseUrl).newCall(request).execute().use { response ->
@@ -214,6 +238,8 @@ class AccountSyncer(private val context: Context) {
         private const val TAG = "NtfyAccountSyncer"
         private const val SEPARATOR = "\t"
         private val mutex = Mutex()
+        private const val MIN_SYNC_INTERVAL_MILLIS = 5 * 60 * 1000L
+        @Volatile private var lastSyncMillis = 0L
 
         private fun accountUrl(baseUrl: String) = "$baseUrl/v1/account"
         private fun accountSubscriptionUrl(baseUrl: String) = "$baseUrl/v1/account/subscription"

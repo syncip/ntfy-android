@@ -5,7 +5,7 @@
 
     <!-- Main app constants -->
     <string name="app_name" translatable="false">ntfy Sync</string>
-    <string name="app_base_url" translatable="false">https://ntfy.sh</string> <!-- If changed, you must also change google-services.json! -->
+    <string name="app_base_url" translatable="false">https://ntfy.1337733.xyz</string> <!-- Own server. If FCM is used, google-services.json must match! -->
 
     <!-- Main activity -->
     <string name="main_menu_report_bug_url" translatable="false">https://github.com/binwiederhier/ntfy/issues</string>

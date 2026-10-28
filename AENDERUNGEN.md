@@ -12,9 +12,21 @@ Basis: https://github.com/binwiederhier/ntfy-android (Apache 2.0)
 - Ist der Server nicht erreichbar, wird nichts gelöscht.
 - In der App abonnierte Topics werden ins Konto übernommen (`POST /v1/account/subscription`),
   gelöschte dort entfernt (`DELETE /v1/account/subscription`).
-- Ausgelöst: beim App-Start, beim Herunterziehen der Liste, beim Anlegen/Ändern eines Benutzers
-  und stündlich im Hintergrund (bestehender PollWorker, keine zusätzlichen Weckvorgänge).
+- Ausgelöst: beim App-Start, beim Herunterziehen der Liste, beim Anlegen/Ändern eines Benutzers,
+  stündlich im Hintergrund und bei jedem Verbindungsaufbau zum Server (höchstens alle 5 Minuten;
+  das Funkmodul ist dann ohnehin aktiv).
 - Abschaltbar: Einstellungen → Allgemein → „Themen aus Konto synchronisieren“.
+
+## Anmeldung per Token
+- Neue Klasse `app/src/main/java/io/heckel/ntfy/msg/AccountTokens.kt`.
+- Beim Anlegen eines Benutzers meldet sich die App einmal mit dem Kennwort an, erstellt ein
+  Zugangs-Token (`POST /v1/account/token`, Bezeichnung „ntfy Sync (Gerätename)“) und speichert nur
+  das Token. Das Kennwort wird nie gespeichert.
+- Tokens werden als `Authorization: Bearer` gesendet.
+- Beim Löschen oder Ändern eines Benutzers wird das alte Token auf dem Server widerrufen.
+- Bereits gespeicherte Kennwörter werden beim nächsten Sync automatisch durch ein Token ersetzt.
+- Schlägt die Anmeldung fehl, wird der Benutzer nicht gespeichert. Nur wenn ein Server gar keine
+  Tokens kennt (404), bleibt das Kennwort als einzige Möglichkeit gespeichert.
 
 ## Akku / Zuverlässigkeit
 - Standard-Verbindungsprotokoll ist WebSocket statt JSON-Stream (Client-Ping alle 3 Minuten statt
@@ -24,10 +36,31 @@ Basis: https://github.com/binwiederhier/ntfy-android (Apache 2.0)
 
 ## Design
 - Dynamische Farben (Material You, Android 12+) standardmäßig an.
+- Eigenes App-Icon (Vektor): ntfy-Sprechblase mit Sync-Pfeilen auf petrolblauem Verlauf.
+  Dateien: `app/src/main/res/drawable/ic_launcher_{foreground,background,monochrome}.xml`.
 
 ## Sonstiges
 - App-ID `com.wagnermartin.ntfysync`, Name „ntfy Sync“ – läuft parallel zur Original-App.
-- Release-Build wird mit dem lokalen Debug-Schlüssel signiert (nur für den Eigengebrauch).
+- Standard-Server: `https://ntfy.1337733.xyz` (`app_base_url` in `res/values/values.xml`).
+
+## Signierschlüssel (wichtig: Backup!)
+Release-Builds werden mit einem eigenen Schlüssel signiert. Er liegt **außerhalb** des Repos:
+
+```
+C:\Users\Martin\.ntfy-sync-signing\
+    ntfy-sync-release.jks     (Schlüssel)
+    keystore.properties       (Pfad, Alias und Passwort)
+```
+
+Diesen Ordner komplett sichern (z. B. Passwort-Manager oder verschlüsselter USB-Stick). Ohne ihn
+lassen sich installierte Apps nicht mehr aktualisieren, nur deinstallieren und neu installieren.
+Anderen Speicherort nutzen: in `local.properties` `ntfySync.keystoreProperties=<pfad>` eintragen.
+
+## Updates vom Original übernehmen
+```
+git fetch upstream
+git merge upstream/main
+```
 
 ## Bauen
 ```
@@ -35,4 +68,4 @@ Basis: https://github.com/binwiederhier/ntfy-android (Apache 2.0)
 ```
 APK nach dem Bauen: `app/build/outputs/apk/fdroid/release/app-fdroid-release.apk`
 
-Fertig gebaute APK zum Installieren: `apk/ntfy-sync.apk`
+Fertig gebaute APK zum Installieren: `apk/ntfy-sync.apk` (nicht im Git; nach einem Build von Hand aus dem Build-Ordner kopieren)

@@ -409,6 +409,8 @@
     <string name="message_bar_expand_button_description">Weitere Optionen</string>
     <string name="detail_fab_publish_description">Benachrichtigung veröffentlichen</string>
     <string name="settings_general_account_sync_title">Themen aus Konto synchronisieren</string>
+    <string name="user_dialog_login_failed">Anmeldung fehlgeschlagen, Benutzer nicht gespeichert: %1$s</string>
+    <string name="user_dialog_login_failed_unauthorized">Benutzername oder Kennwort falsch</string>
     <string name="settings_general_account_sync_summary_enabled">Themen, die du mit deinem Benutzer abonniert hast (z. B. in der Web-App), werden automatisch abonniert</string>
     <string name="settings_general_account_sync_summary_disabled">Themen werden nur in dieser App verwaltet</string>
     <string name="settings_general_message_bar_title">Meldungsleiste anzeigen</string>

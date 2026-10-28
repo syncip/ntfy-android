@@ -32,6 +32,8 @@ import io.heckel.ntfy.R
 import io.heckel.ntfy.backup.Backuper
 import io.heckel.ntfy.db.CustomHeader
 import io.heckel.ntfy.msg.AccountSyncer
+import io.heckel.ntfy.msg.AccountTokens
+import io.heckel.ntfy.msg.ApiService
 import io.heckel.ntfy.db.Repository
 import io.heckel.ntfy.db.User
 import io.heckel.ntfy.service.SubscriberServiceManager
@@ -1113,9 +1115,23 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
         }
     }
 
+    private suspend fun exchangePasswordOrShowError(user: User): User? {
+        return try {
+            AccountTokens(this).exchangePassword(user)
+        } catch (e: Exception) {
+            Log.w(TAG, "Login failed for ${user.username} on ${user.baseUrl}: ${e.message}")
+            val reason = if (e is ApiService.UnauthorizedException) getString(R.string.user_dialog_login_failed_unauthorized) else e.message
+            runOnUiThread {
+                android.widget.Toast.makeText(this, getString(R.string.user_dialog_login_failed, reason), android.widget.Toast.LENGTH_LONG).show()
+            }
+            null
+        }
+    }
+
     override fun onAddUser(dialog: DialogFragment, user: User) {
         lifecycleScope.launch(Dispatchers.IO) {
-            repository.addUser(user)
+            val userWithToken = exchangePasswordOrShowError(user) ?: return@launch // Never store the password
+            repository.addUser(userWithToken)
             syncAccount()
             runOnUiThread {
                 if (this@SettingsActivity::userSettingsFragment.isInitialized) {
@@ -1127,7 +1143,12 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
 
     override fun onUpdateUser(dialog: DialogFragment, user: User) {
         lifecycleScope.launch(Dispatchers.IO) {
-            repository.updateUser(user)
+            val oldUser = repository.getUser(user.baseUrl)
+            val userWithToken = exchangePasswordOrShowError(user) ?: return@launch
+            repository.updateUser(userWithToken)
+            if (oldUser != null && oldUser.password != userWithToken.password) {
+                AccountTokens(this@SettingsActivity).revoke(oldUser)
+            }
             serviceManager.refresh()
             syncAccount()
             runOnUiThread {
@@ -1140,6 +1161,7 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
 
     override fun onDeleteUser(dialog: DialogFragment, baseUrl: String) {
         lifecycleScope.launch(Dispatchers.IO) {
+            repository.getUser(baseUrl)?.let { AccountTokens(this@SettingsActivity).revoke(it) }
             repository.deleteUser(baseUrl)
             serviceManager.refresh()
             runOnUiThread {

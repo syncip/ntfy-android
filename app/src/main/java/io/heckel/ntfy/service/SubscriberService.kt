@@ -23,6 +23,7 @@ import io.heckel.ntfy.app.Application
 import io.heckel.ntfy.db.ConnectionState
 import io.heckel.ntfy.db.Repository
 import io.heckel.ntfy.db.Subscription
+import io.heckel.ntfy.msg.AccountSyncer
 import io.heckel.ntfy.msg.ApiService
 import io.heckel.ntfy.msg.NotificationDispatcher
 import io.heckel.ntfy.ui.Colors
@@ -328,6 +329,14 @@ class SubscriberService : Service() {
         repository.updateConnectionDetails(baseUrl, state, throwable, nextRetryTime)
         if (state == ConnectionState.CONNECTED) {
             maybeAutoDismissConnectionAlert()
+            // Radio is awake anyway, so this is the cheapest moment to pick up topics added in the web app
+            GlobalScope.launch(Dispatchers.IO) {
+                try {
+                    AccountSyncer(this@SubscriberService).syncIfDue()
+                } catch (e: Exception) {
+                    Log.w(TAG, "Account sync failed: ${e.message}")
+                }
+            }
         } else if (throwable != null) {
             maybeShowConnectionAlert()
         }
