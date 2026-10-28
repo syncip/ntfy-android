@@ -31,6 +31,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        app:trackCornerRadius="4dp"
+        app:indicatorTrackGapSize="0dp"
+        app:trackColor="?attr/colorSurfaceContainerHighest"
+        app:trackCornerRadius="3dp"
+        app:trackStopIndicatorSize="0dp"
         app:trackThickness="6dp" />
 </LinearLayout>

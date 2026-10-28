@@ -24,6 +24,7 @@ import io.heckel.ntfy.db.ConnectionState
 import io.heckel.ntfy.db.Repository
 import io.heckel.ntfy.db.Subscription
 import io.heckel.ntfy.msg.AccountSyncer
+import io.heckel.ntfy.msg.MarkAllRead
 import io.heckel.ntfy.msg.ApiService
 import io.heckel.ntfy.msg.NotificationDispatcher
 import io.heckel.ntfy.ui.Colors
@@ -490,7 +491,11 @@ class SubscriberService : Service() {
         val pendingIntent: PendingIntent = Intent(this, MainActivity::class.java).let { notificationIntent ->
             PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE)
         }
+        val markAllReadIntent = PendingIntent.getBroadcast(
+            this, 0, Intent(this, MarkAllRead.Receiver::class.java), PendingIntent.FLAG_IMMUTABLE
+        )
         return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+            .addAction(R.drawable.ic_done_all_white_24dp, getString(R.string.main_menu_mark_all_read), markAllReadIntent)
             .setSmallIcon(R.drawable.ic_notification_instant)
             .setColor(Colors.notificationIcon(this))
             .setContentTitle(title)

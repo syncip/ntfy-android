@@ -187,6 +187,12 @@
                 android:exported="false">
         </receiver>
 
+        <!-- Broadcast receiver for the "mark all as read" action in the permanent status bar notification -->
+        <receiver
+                android:name=".msg.MarkAllRead$Receiver"
+                android:enabled="true"
+                android:exported="false"/>
+
         <!-- Firebase messaging (note that this is empty in the F-Droid flavor) -->
         <service
                 android:name=".firebase.FirebaseService"

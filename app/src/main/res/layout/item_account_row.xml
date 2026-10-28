@@ -2,9 +2,9 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:gravity="center_vertical"
-    android:minHeight="64dp"
+    android:minHeight="56dp"
     android:orientation="horizontal"
-    android:paddingVertical="8dp"
+    android:paddingVertical="6dp"
     android:paddingStart="16dp"
     android:paddingEnd="4dp">
 
@@ -32,8 +32,8 @@
 
     <ImageButton
         android:id="@+id/account_row_delete"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/account_delete"
         android:src="@drawable/ic_delete_white_20dp"

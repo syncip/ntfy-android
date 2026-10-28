@@ -54,6 +54,7 @@ import io.heckel.ntfy.db.Repository
 import io.heckel.ntfy.db.Subscription
 import io.heckel.ntfy.firebase.FirebaseMessenger
 import io.heckel.ntfy.msg.AccountSyncer
+import io.heckel.ntfy.msg.MarkAllRead
 import io.heckel.ntfy.msg.ApiService
 import io.heckel.ntfy.msg.DownloadManager
 import io.heckel.ntfy.msg.DownloadType
@@ -694,15 +695,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
 
     private fun onMarkAllReadClick() {
         lifecycleScope.launch(Dispatchers.IO) {
-            val notifier = NotificationService(this@MainActivity)
-            val unread = repository.getUnreadNotifications()
-            unread.forEach { notifier.cancel(it.notificationId) }
-            unread.groupBy { it.subscriptionId }.forEach { (subscriptionId, notifications) ->
-                repository.getSubscription(subscriptionId)?.let {
-                    ReadSync.onRead(this@MainActivity, it.baseUrl, it.topic, notifications) // Mark as read in the web app too
-                }
-                repository.markAllAsRead(subscriptionId)
-            }
+            MarkAllRead.run(this@MainActivity)
         }
     }
 

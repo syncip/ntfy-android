@@ -80,25 +80,31 @@
                     </com.google.android.material.card.MaterialCardView>
 
                     <!-- Reserved topics -->
+                    <!-- Same vertical rhythm as AccountSectionTitle: the button's own padding takes the place of the margins -->
                     <LinearLayout
                         android:id="@+id/account_reservations_header"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="bottom"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center_vertical"
                         android:orientation="horizontal">
 
                         <TextView
-                            style="@style/AccountSectionTitle"
                             android:layout_width="0dp"
+                            android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="@string/account_reservations_title" />
+                            android:text="@string/account_reservations_title"
+                            android:textAppearance="?attr/textAppearanceTitleSmall"
+                            android:textColor="?attr/colorPrimary" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/account_reservation_add"
                             style="@style/Widget.Material3.Button.TextButton"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/account_reservation_add" />
+                            android:layout_marginEnd="-12dp"
+                            android:text="@string/account_reservation_add"
+                            app:icon="@drawable/ic_add_black_24dp" />
                     </LinearLayout>
 
                     <com.google.android.material.card.MaterialCardView
@@ -109,6 +115,7 @@
                             android:id="@+id/account_reservations"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:paddingVertical="4dp"
                             android:orientation="vertical" />
                     </com.google.android.material.card.MaterialCardView>
 
@@ -123,6 +130,7 @@
                             android:id="@+id/account_tokens"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:paddingVertical="4dp"
                             android:orientation="vertical" />
                     </com.google.android.material.card.MaterialCardView>
 

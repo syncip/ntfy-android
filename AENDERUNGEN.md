@@ -37,6 +37,7 @@ Basis: https://github.com/binwiederhier/ntfy-android (Apache 2.0)
 
 ## Alle als gelesen markieren
 - Häkchen-Symbol oben auf der Hauptseite, nur sichtbar, wenn es ungelesene Nachrichten gibt.
+- Zusätzlich als Button in der dauerhaften ntfy-Benachrichtigung in der Statusleiste (aufklappen).
 - Entfernt alle offenen Benachrichtigungen und die „Neu“-Zähler aller Themen.
 
 ## Gelesen-Status zwischen App und Web-App

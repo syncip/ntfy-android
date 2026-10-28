@@ -303,7 +303,10 @@ class AccountActivity : AppCompatActivity() {
 
     private fun relativeTime(unixSeconds: Long?): String {
         if (unixSeconds == null || unixSeconds <= 0) return getString(R.string.account_token_never_used)
-        return DateUtils.getRelativeTimeSpanString(unixSeconds * 1000, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS).toString()
+        // Lowercase, since it continues a sentence ("Zuletzt genutzt vor 2 Stunden", not "... Vor 2 Stunden")
+        return DateUtils.getRelativeTimeSpanString(unixSeconds * 1000, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS)
+            .toString()
+            .replaceFirstChar { it.lowercase() }
     }
 
     private fun maskToken(token: String) = if (token.length > 10) token.take(6) + "…" + token.takeLast(4) else token

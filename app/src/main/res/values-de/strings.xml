@@ -432,7 +432,7 @@
 
     <!-- Read state sync -->
     <string name="settings_notifications_read_sync_title">Gelesen-Status mit Web-App abgleichen</string>
-    <string name="settings_notifications_read_sync_summary_enabled">Hier gelesene Nachrichten werden auch in der Web-App und auf anderen Geräten als gelesen markiert (braucht Schreibrecht auf das Thema)</string>
+    <string name="settings_notifications_read_sync_summary_enabled">Gelesenes wird auch in der Web-App als gelesen markiert</string>
     <string name="settings_notifications_read_sync_summary_disabled">Gelesen-Status bleibt auf diesem Gerät</string>
     <string name="settings_notifications_swipe_marks_read_title">Wegwischen markiert als gelesen</string>
     <string name="settings_notifications_swipe_marks_read_summary_enabled">Eine weggewischte Benachrichtigung gilt als gelesen</string>
@@ -441,7 +441,7 @@
     <!-- Account screen -->
     <string name="account_title">Konto</string>
     <string name="account_role_admin">Admin</string>
-    <string name="account_usage_title">Nutzung heute</string>
+    <string name="account_usage_title">Nutzung</string>
     <string name="account_usage_value">%1$s von %2$s</string>
     <string name="account_usage_messages">Nachrichten</string>
     <string name="account_usage_emails">E-Mails</string>
