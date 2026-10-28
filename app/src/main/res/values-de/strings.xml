@@ -430,6 +430,14 @@
     <string name="settings_notifications_quiet_hours_min_priority_max">Nur dringende Priorität</string>
     <string name="settings_notifications_quiet_hours_min_priority_none">Nichts, alles lautlos</string>
 
+    <!-- Read state sync -->
+    <string name="settings_notifications_read_sync_title">Gelesen-Status mit Web-App abgleichen</string>
+    <string name="settings_notifications_read_sync_summary_enabled">Hier gelesene Nachrichten werden auch in der Web-App und auf anderen Geräten als gelesen markiert (braucht Schreibrecht auf das Thema)</string>
+    <string name="settings_notifications_read_sync_summary_disabled">Gelesen-Status bleibt auf diesem Gerät</string>
+    <string name="settings_notifications_swipe_marks_read_title">Wegwischen markiert als gelesen</string>
+    <string name="settings_notifications_swipe_marks_read_summary_enabled">Eine weggewischte Benachrichtigung gilt als gelesen</string>
+    <string name="settings_notifications_swipe_marks_read_summary_disabled">Nur das Öffnen eines Themas markiert als gelesen</string>
+
     <!-- Account screen -->
     <string name="account_title">Konto</string>
     <string name="account_role_admin">Admin</string>

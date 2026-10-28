@@ -427,6 +427,14 @@
     <string name="settings_notifications_quiet_hours_min_priority_max">Only max priority</string>
     <string name="settings_notifications_quiet_hours_min_priority_none">Nothing, all silent</string>
 
+    <!-- Read state sync -->
+    <string name="settings_notifications_read_sync_title">Sync read state with web app</string>
+    <string name="settings_notifications_read_sync_summary_enabled">Messages read here are marked as read in the web app and on other devices (needs write access to the topic)</string>
+    <string name="settings_notifications_read_sync_summary_disabled">Read state stays on this device</string>
+    <string name="settings_notifications_swipe_marks_read_title">Swiping away marks as read</string>
+    <string name="settings_notifications_swipe_marks_read_summary_enabled">Swiping a notification away marks the message as read</string>
+    <string name="settings_notifications_swipe_marks_read_summary_disabled">Only opening a topic marks messages as read</string>
+
     <!-- Account screen -->
     <string name="account_title">Account</string>
     <string name="account_role_admin">Admin</string>

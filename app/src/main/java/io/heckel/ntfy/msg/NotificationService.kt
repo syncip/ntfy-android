@@ -21,6 +21,8 @@ import io.heckel.ntfy.ui.MainActivity
 import io.heckel.ntfy.util.*
 import java.util.*
 import androidx.core.net.toUri
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
 class NotificationService(val context: Context) {
@@ -100,7 +102,7 @@ class NotificationService(val context: Context) {
             .setSilent(silent) // Quiet hours: show, but without sound or vibration
         setStyleAndText(builder, subscription, notification) // Preview picture or big text style
         setClickAction(builder, subscription, notification)
-        maybeSetDeleteIntent(builder, insistent)
+        setDeleteIntent(builder, subscription, notification, insistent)
         maybeSetSound(builder, insistent, update)
         maybeSetProgress(builder, notification)
         maybeAddOpenAction(builder, notification)
@@ -116,11 +118,13 @@ class NotificationService(val context: Context) {
         notificationManager.notify(notification.notificationId, builder.build())
     }
 
-    private fun maybeSetDeleteIntent(builder: NotificationCompat.Builder, insistent: Boolean) {
-        if (!insistent) {
-            return
+    private fun setDeleteIntent(builder: NotificationCompat.Builder, subscription: Subscription, notification: Notification, insistent: Boolean) {
+        // Always set, so that "swipe marks as read" also works for notifications shown before it was turned on
+        val intent = Intent(context, DeleteBroadcastReceiver::class.java).apply {
+            putExtra(DELETE_EXTRA_INSISTENT, insistent)
+            putExtra(DELETE_EXTRA_SUBSCRIPTION_ID, subscription.id)
+            putExtra(DELETE_EXTRA_SEQUENCE_ID, notification.sequenceId.ifEmpty { notification.id })
         }
-        val intent = Intent(context, DeleteBroadcastReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(context, Random().nextInt(), intent, PendingIntent.FLAG_IMMUTABLE)
         builder.setDeleteIntent(pendingIntent)
     }
@@ -347,14 +351,32 @@ class NotificationService(val context: Context) {
     }
 
     /**
-     * Receives a broadcast when a notification is swiped away. This is currently
-     * only called for notifications with an insistent sound.
+     * Receives a broadcast when a notification is swiped away: stops the insistent sound and,
+     * if enabled, marks the message as read (here and in the web app).
      */
     class DeleteBroadcastReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            Log.d(TAG, "Media player: Stopping insistent ring")
-            val mediaPlayer = Repository.getInstance(context).mediaPlayer
-            mediaPlayer.stop()
+            val repository = Repository.getInstance(context)
+            if (intent.getBooleanExtra(DELETE_EXTRA_INSISTENT, true)) {
+                Log.d(TAG, "Media player: Stopping insistent ring")
+                repository.mediaPlayer.stop()
+            }
+            val subscriptionId = intent.getLongExtra(DELETE_EXTRA_SUBSCRIPTION_ID, 0L)
+            val sequenceId = intent.getStringExtra(DELETE_EXTRA_SEQUENCE_ID)
+            if (!repository.getSwipeMarksRead() || subscriptionId == 0L || sequenceId == null) {
+                return
+            }
+            val pendingResult = goAsync()
+            GlobalScope.launch(Dispatchers.IO) {
+                try {
+                    repository.markAsReadBySequenceId(subscriptionId, sequenceId)
+                    repository.getSubscription(subscriptionId)?.let {
+                        ReadSync.enqueue(context, it.baseUrl, it.topic, listOf(sequenceId))
+                    }
+                } finally {
+                    pendingResult.finish()
+                }
+            }
         }
     }
 
@@ -523,6 +545,9 @@ class NotificationService(val context: Context) {
     }
 
     companion object {
+        private const val DELETE_EXTRA_INSISTENT = "insistent"
+        private const val DELETE_EXTRA_SUBSCRIPTION_ID = "subscriptionId"
+        private const val DELETE_EXTRA_SEQUENCE_ID = "sequenceId"
         const val ACTION_VIEW = "view"
         const val ACTION_HTTP = "http"
         const val ACTION_BROADCAST = "broadcast"

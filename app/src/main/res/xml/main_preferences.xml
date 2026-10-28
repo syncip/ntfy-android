@@ -42,6 +42,14 @@
                 app:entryValues="@array/settings_notifications_auto_delete_values"
                 app:defaultValue="2592000"/>
         <SwitchPreferenceCompat
+                app:key="@string/settings_notifications_read_sync_key"
+                app:title="@string/settings_notifications_read_sync_title"
+                app:defaultValue="true"/>
+        <SwitchPreferenceCompat
+                app:key="@string/settings_notifications_swipe_marks_read_key"
+                app:title="@string/settings_notifications_swipe_marks_read_title"
+                app:defaultValue="false"/>
+        <SwitchPreferenceCompat
                 app:key="@string/settings_notifications_insistent_max_priority_key"
                 app:title="@string/settings_notifications_insistent_max_priority_title"
                 app:defaultValue="false"/>

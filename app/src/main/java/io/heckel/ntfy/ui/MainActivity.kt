@@ -60,6 +60,7 @@ import io.heckel.ntfy.msg.DownloadType
 import io.heckel.ntfy.msg.NotificationDispatcher
 import io.heckel.ntfy.msg.NotificationService
 import io.heckel.ntfy.msg.Poller
+import io.heckel.ntfy.msg.ReadSync
 import io.heckel.ntfy.service.SubscriberService
 import io.heckel.ntfy.service.SubscriberServiceManager
 import io.heckel.ntfy.util.Log
@@ -694,9 +695,14 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
     private fun onMarkAllReadClick() {
         lifecycleScope.launch(Dispatchers.IO) {
             val notifier = NotificationService(this@MainActivity)
-            val unread = repository.getNotifications().filter { it.notificationId != 0 }
+            val unread = repository.getUnreadNotifications()
             unread.forEach { notifier.cancel(it.notificationId) }
-            unread.map { it.subscriptionId }.distinct().forEach { repository.markAllAsRead(it) }
+            unread.groupBy { it.subscriptionId }.forEach { (subscriptionId, notifications) ->
+                repository.getSubscription(subscriptionId)?.let {
+                    ReadSync.onRead(this@MainActivity, it.baseUrl, it.topic, notifications) // Mark as read in the web app too
+                }
+                repository.markAllAsRead(subscriptionId)
+            }
         }
     }
 

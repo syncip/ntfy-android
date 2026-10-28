@@ -28,6 +28,8 @@
     <string name="settings_general_account_sync_key" translatable="false">AccountSyncEnabled</string>
     <string name="settings_general_account_key" translatable="false">Account</string>
     <string name="settings_notifications_quiet_hours_key" translatable="false">QuietHoursEnabled</string>
+    <string name="settings_notifications_read_sync_key" translatable="false">ReadSyncEnabled</string>
+    <string name="settings_notifications_swipe_marks_read_key" translatable="false">SwipeMarksRead</string>
     <string name="settings_notifications_quiet_hours_start_key" translatable="false">QuietHoursStart</string>
     <string name="settings_notifications_quiet_hours_end_key" translatable="false">QuietHoursEnd</string>
     <string name="settings_notifications_quiet_hours_min_priority_key" translatable="false">QuietHoursMinPriority</string>

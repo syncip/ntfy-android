@@ -109,6 +109,10 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         return notificationDao.list()
     }
 
+    suspend fun getUnreadNotifications(): List<Notification> {
+        return notificationDao.listUnread()
+    }
+
     fun getDeletedNotificationsWithAttachments(): List<Notification> {
         return notificationDao.listDeletedWithAttachments()
     }
@@ -445,6 +449,26 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         }
     }
 
+    fun getReadSyncEnabled(): Boolean {
+        return sharedPrefs.getBoolean(SHARED_PREFS_READ_SYNC_ENABLED, true) // Enabled by default
+    }
+
+    fun setReadSyncEnabled(enabled: Boolean) {
+        sharedPrefs.edit {
+            putBoolean(SHARED_PREFS_READ_SYNC_ENABLED, enabled)
+        }
+    }
+
+    fun getSwipeMarksRead(): Boolean {
+        return sharedPrefs.getBoolean(SHARED_PREFS_SWIPE_MARKS_READ, false) // Default: only opening marks as read
+    }
+
+    fun setSwipeMarksRead(enabled: Boolean) {
+        sharedPrefs.edit {
+            putBoolean(SHARED_PREFS_SWIPE_MARKS_READ, enabled)
+        }
+    }
+
     fun getAccountSyncEnabled(): Boolean {
         return sharedPrefs.getBoolean(SHARED_PREFS_ACCOUNT_SYNC_ENABLED, true) // Enabled by default
     }
@@ -720,6 +744,8 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         const val SHARED_PREFS_RECORD_LOGS_ENABLED = "RecordLogs"
         const val SHARED_PREFS_MESSAGE_BAR_ENABLED = "MessageBarEnabled"
         const val SHARED_PREFS_ACCOUNT_SYNC_ENABLED = "AccountSyncEnabled"
+        const val SHARED_PREFS_READ_SYNC_ENABLED = "ReadSyncEnabled"
+        const val SHARED_PREFS_SWIPE_MARKS_READ = "SwipeMarksRead"
         const val SHARED_PREFS_QUIET_HOURS_ENABLED = "QuietHoursEnabled"
         const val SHARED_PREFS_QUIET_HOURS_START = "QuietHoursStart"
         const val SHARED_PREFS_QUIET_HOURS_END = "QuietHoursEnd"

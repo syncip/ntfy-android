@@ -39,6 +39,37 @@ Basis: https://github.com/binwiederhier/ntfy-android (Apache 2.0)
 - Häkchen-Symbol oben auf der Hauptseite, nur sichtbar, wenn es ungelesene Nachrichten gibt.
 - Entfernt alle offenen Benachrichtigungen und die „Neu“-Zähler aller Themen.
 
+## Gelesen-Status zwischen App und Web-App
+Nutzt die eingebaute „clear“-Funktion von ntfy (`PUT /<topic>/<sequence_id>/clear`, ab Server
+v2.17.0). Der Server macht daraus ein `message_clear`-Ereignis, das Web-App und Android-App als
+„gelesen + Benachrichtigung entfernen“ verstehen. Keine Serveränderung nötig.
+
+**App → Web** (`msg/ReadSync.kt`)
+- Beim Öffnen eines Themas und bei „Alle als gelesen“ meldet die App die ungelesenen Nachrichten
+  (höchstens die 50 neuesten pro Aktion) als gelesen.
+- Optional auch beim Wegwischen einer Benachrichtigung (Standard: aus).
+- Einstellungen → Benachrichtigungen: „Gelesen-Status mit Web-App abgleichen“ und
+  „Wegwischen markiert als gelesen“.
+- Gesendet wird per WorkManager, nur mit Netz, gedrosselt (200 ms Abstand), mit Wiederholung bei
+  Netzfehlern oder Rate-Limit. Kein Dauer-Polling.
+- Braucht Schreibrecht auf das Thema; ohne Schreibrecht wird es still übersprungen.
+
+**Web → App** (`userscript/ntfy-read-sync.user.js`)
+- Die unveränderte Web-App speichert „gelesen“ nur lokal im Browser. Das Userscript erkennt,
+  wenn du dort etwas liest, und sendet dafür die „clear“-Meldung. Die App empfängt sie über ihre
+  bestehende Verbindung, markiert die Nachricht als gelesen und entfernt die Benachrichtigung.
+- Installation: Browser-Erweiterung Tampermonkey oder Violentmonkey installieren, dann die Datei
+  `userscript/ntfy-read-sync.user.js` dort als neues Skript einfügen und speichern. Es läuft nur auf
+  `https://ntfy.1337733.xyz/*`.
+- Prüft alle 2 Sekunden, solange der Tab sichtbar ist. Alter Verlauf wird nie gemeldet, nur was
+  ab dem Öffnen der Seite gelesen wird. Was von anderen Geräten als gelesen kommt, wird nicht
+  zurückgemeldet (kein Ping-Pong).
+- Kann bei größeren Änderungen der ntfy-Web-App brechen (liest deren Browser-Datenbank).
+
+**Hinweis Rate-Limit:** Jede Meldung ist eine Anfrage an den Server. Wenn du auf einmal sehr viele
+Nachrichten liest, kann das Rate-Limit des Servers (`visitor-request-limit-*`) greifen; die App
+wiederholt dann später.
+
 ## Konto-Seite
 - Hauptmenü → „Konto“ oder Einstellungen → „Konto“ (`ui/AccountActivity.kt`, `msg/AccountApi.kt`).
 - Zeigt Benutzer, Rolle/Tarif, Nutzung mit Limits (nur Zeilen mit Limit), reservierte Themen

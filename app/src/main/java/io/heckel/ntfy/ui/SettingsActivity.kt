@@ -324,6 +324,42 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
             quietHoursMinPriority?.summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
             updateQuietHoursPrefs()
 
+            // Read state sync with the web app
+            val readSync: SwitchPreferenceCompat? = findPreference(getString(R.string.settings_notifications_read_sync_key))
+            readSync?.isChecked = repository.getReadSyncEnabled()
+            readSync?.preferenceDataStore = object : PreferenceDataStore() {
+                override fun putBoolean(key: String?, value: Boolean) {
+                    repository.setReadSyncEnabled(value)
+                }
+                override fun getBoolean(key: String?, defValue: Boolean): Boolean {
+                    return repository.getReadSyncEnabled()
+                }
+            }
+            readSync?.summaryProvider = Preference.SummaryProvider<SwitchPreferenceCompat> { pref ->
+                if (pref.isChecked) {
+                    getString(R.string.settings_notifications_read_sync_summary_enabled)
+                } else {
+                    getString(R.string.settings_notifications_read_sync_summary_disabled)
+                }
+            }
+            val swipeMarksRead: SwitchPreferenceCompat? = findPreference(getString(R.string.settings_notifications_swipe_marks_read_key))
+            swipeMarksRead?.isChecked = repository.getSwipeMarksRead()
+            swipeMarksRead?.preferenceDataStore = object : PreferenceDataStore() {
+                override fun putBoolean(key: String?, value: Boolean) {
+                    repository.setSwipeMarksRead(value)
+                }
+                override fun getBoolean(key: String?, defValue: Boolean): Boolean {
+                    return repository.getSwipeMarksRead()
+                }
+            }
+            swipeMarksRead?.summaryProvider = Preference.SummaryProvider<SwitchPreferenceCompat> { pref ->
+                if (pref.isChecked) {
+                    getString(R.string.settings_notifications_swipe_marks_read_summary_enabled)
+                } else {
+                    getString(R.string.settings_notifications_swipe_marks_read_summary_disabled)
+                }
+            }
+
             // Keep alerting for max priority
             val insistentMaxPriorityPrefId = context?.getString(R.string.settings_notifications_insistent_max_priority_key) ?: return
             val insistentMaxPriority: SwitchPreferenceCompat? = findPreference(insistentMaxPriorityPrefId)
