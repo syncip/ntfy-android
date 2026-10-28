@@ -1,0 +1,141 @@
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
+
+    <include
+        android:id="@+id/app_bar_drawer"
+        layout="@layout/app_bar_drawer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/account_refresh"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <androidx.core.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="32dp">
+
+                <TextView
+                    android:id="@+id/account_error"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="16dp"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"
+                    android:textColor="?attr/colorError"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:id="@+id/account_sections"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <!-- Who am I -->
+                    <TextView
+                        android:id="@+id/account_username"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:textAppearance="?attr/textAppearanceHeadlineSmall" />
+
+                    <TextView
+                        android:id="@+id/account_details"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
+
+                    <!-- Usage -->
+                    <TextView
+                        android:id="@+id/account_usage_title"
+                        style="@style/AccountSectionTitle"
+                        android:text="@string/account_usage_title" />
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/account_usage_card"
+                        style="@style/AccountCard">
+
+                        <LinearLayout
+                            android:id="@+id/account_usage"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:paddingVertical="8dp" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Reserved topics -->
+                    <LinearLayout
+                        android:id="@+id/account_reservations_header"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="bottom"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            style="@style/AccountSectionTitle"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:text="@string/account_reservations_title" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/account_reservation_add"
+                            style="@style/Widget.Material3.Button.TextButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/account_reservation_add" />
+                    </LinearLayout>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/account_reservations_card"
+                        style="@style/AccountCard">
+
+                        <LinearLayout
+                            android:id="@+id/account_reservations"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Access tokens -->
+                    <TextView
+                        style="@style/AccountSectionTitle"
+                        android:text="@string/account_tokens_title" />
+
+                    <com.google.android.material.card.MaterialCardView style="@style/AccountCard">
+
+                        <LinearLayout
+                            android:id="@+id/account_tokens"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/account_change_password"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="24dp"
+                        android:text="@string/account_change_password" />
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

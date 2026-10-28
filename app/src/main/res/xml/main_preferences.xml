@@ -13,6 +13,22 @@
             app:entries="@array/settings_notifications_min_priority_entries"
             app:entryValues="@array/settings_notifications_min_priority_values"
             app:defaultValue="1"/>
+        <SwitchPreferenceCompat
+                app:key="@string/settings_notifications_quiet_hours_key"
+                app:title="@string/settings_notifications_quiet_hours_title"
+                app:defaultValue="false"/>
+        <Preference
+                app:key="@string/settings_notifications_quiet_hours_start_key"
+                app:title="@string/settings_notifications_quiet_hours_start_title"/>
+        <Preference
+                app:key="@string/settings_notifications_quiet_hours_end_key"
+                app:title="@string/settings_notifications_quiet_hours_end_title"/>
+        <ListPreference
+                app:key="@string/settings_notifications_quiet_hours_min_priority_key"
+                app:title="@string/settings_notifications_quiet_hours_min_priority_title"
+                app:entries="@array/settings_notifications_quiet_hours_min_priority_entries"
+                app:entryValues="@array/settings_notifications_quiet_hours_min_priority_values"
+                app:defaultValue="4"/>
         <ListPreference
                 app:key="@string/settings_notifications_auto_download_key"
                 app:title="@string/settings_notifications_auto_download_title"
@@ -43,6 +59,10 @@
                 app:title="@string/settings_general_users_title"
                 app:summary="@string/settings_general_users_summary"
                 app:fragment="io.heckel.ntfy.ui.SettingsActivity$UserSettingsFragment"/>
+        <Preference
+                app:key="@string/settings_general_account_key"
+                app:title="@string/account_title"
+                app:summary="@string/settings_general_account_summary"/>
         <SwitchPreferenceCompat
                 app:key="@string/settings_general_account_sync_key"
                 app:title="@string/settings_general_account_sync_title"

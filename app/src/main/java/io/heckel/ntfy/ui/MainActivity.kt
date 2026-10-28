@@ -58,6 +58,7 @@ import io.heckel.ntfy.msg.ApiService
 import io.heckel.ntfy.msg.DownloadManager
 import io.heckel.ntfy.msg.DownloadType
 import io.heckel.ntfy.msg.NotificationDispatcher
+import io.heckel.ntfy.msg.NotificationService
 import io.heckel.ntfy.msg.Poller
 import io.heckel.ntfy.service.SubscriberService
 import io.heckel.ntfy.service.SubscriberServiceManager
@@ -97,6 +98,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
 
     // UI elements
     private lateinit var menu: Menu
+    private var hasUsers = false
     private lateinit var mainList: RecyclerView
     private lateinit var mainListContainer: SwipeRefreshLayout
     private lateinit var adapter: MainAdapter
@@ -236,6 +238,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
                 showHideBatteryBanner(subscriptions)
                 showHideWebSocketBanner(subscriptions)
                 showHideWebSocketReconnectBanner()
+                showHideMarkAllReadMenuItem(subscriptions)
             }
         }
 
@@ -247,6 +250,8 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
                     Log.addScrubTerm(u.username, Log.TermType.Username)
                     Log.addScrubTerm(u.password, Log.TermType.Password)
                 }
+                hasUsers = users.isNotEmpty()
+                if (this::menu.isInitialized) menu.findItem(R.id.main_menu_account)?.isVisible = hasUsers
             }
         }
 
@@ -410,6 +415,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
     override fun onResume() {
         super.onResume()
         showHideNotificationMenuItems()
+        viewModel.list().value?.let { showHideMarkAllReadMenuItem(it) }
         showHideConnectionErrorMenuItem(repository.getConnectionDetails())
         showHideNoNetworkBanner()
         redrawList()
@@ -537,6 +543,8 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_main_action_bar, menu)
         this.menu = menu
+        menu.findItem(R.id.main_menu_account)?.isVisible = hasUsers
+        viewModel.list().value?.let { showHideMarkAllReadMenuItem(it) }
         
         // Tint menu icons based on theme
         val toolbarTextColor = Colors.toolbarTextColor(this, repository.getDynamicColorsEnabled(), isDarkThemeOn(this))
@@ -593,7 +601,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
             val reportBugItem = menu.findItem(R.id.main_menu_report_bug)
             rateAppItem.isVisible = BuildConfig.RATE_APP_AVAILABLE
             docsItem.isVisible = BuildConfig.PAYMENT_LINKS_AVAILABLE // Google Payments Policy, see https://github.com/binwiederhier/ntfy/issues/1463
-            reportBugItem.isVisible = BuildConfig.PAYMENT_LINKS_AVAILABLE // Google Payments Policy, see https://github.com/binwiederhier/ntfy/issues/1463
+            reportBugItem.isVisible = false // Personal fork: bugs belong in this repo, not in the upstream issue tracker
 
             // Pause notification icons
             val notificationsEnabledItem = menu.findItem(R.id.main_menu_notifications_enabled)
@@ -638,6 +646,14 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
                 onConnectionErrorClick()
                 true
             }
+            R.id.main_menu_mark_all_read -> {
+                onMarkAllReadClick()
+                true
+            }
+            R.id.main_menu_account -> {
+                AccountActivity.start(this)
+                true
+            }
             R.id.main_menu_settings -> {
                 startActivity(Intent(this, SettingsActivity::class.java))
                 true
@@ -667,6 +683,20 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
                 true
             }
             else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    private fun showHideMarkAllReadMenuItem(subscriptions: List<Subscription>) {
+        if (!this::menu.isInitialized) return
+        menu.findItem(R.id.main_menu_mark_all_read)?.isVisible = subscriptions.any { it.newCount > 0 }
+    }
+
+    private fun onMarkAllReadClick() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val notifier = NotificationService(this@MainActivity)
+            val unread = repository.getNotifications().filter { it.notificationId != 0 }
+            unread.forEach { notifier.cancel(it.notificationId) }
+            unread.map { it.subscriptionId }.distinct().forEach { repository.markAllAsRead(it) }
         }
     }
 

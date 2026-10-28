@@ -28,6 +28,27 @@ Basis: https://github.com/binwiederhier/ntfy-android (Apache 2.0)
 - Schlägt die Anmeldung fehl, wird der Benutzer nicht gespeichert. Nur wenn ein Server gar keine
   Tokens kennt (404), bleibt das Kennwort als einzige Möglichkeit gespeichert.
 
+## Ruhezeiten nach Priorität
+- Einstellungen → Benachrichtigungen → „Ruhezeiten“ (Standard: aus, 22:00–07:00).
+- Im Zeitfenster kommen Benachrichtigungen unterhalb der gewählten Priorität lautlos (sichtbar,
+  aber ohne Ton/Vibration). „Trotzdem mit Ton“: Standard ist hohe und dringende Priorität.
+- Wird nur beim Eintreffen einer Nachricht geprüft – keine Timer, keine Wecker, kein Akkuverbrauch.
+- Logik: `app/src/main/java/io/heckel/ntfy/msg/QuietHours.kt`, Tests in `app/src/test/...`.
+
+## Alle als gelesen markieren
+- Häkchen-Symbol oben auf der Hauptseite, nur sichtbar, wenn es ungelesene Nachrichten gibt.
+- Entfernt alle offenen Benachrichtigungen und die „Neu“-Zähler aller Themen.
+
+## Konto-Seite
+- Hauptmenü → „Konto“ oder Einstellungen → „Konto“ (`ui/AccountActivity.kt`, `msg/AccountApi.kt`).
+- Zeigt Benutzer, Rolle/Tarif, Nutzung mit Limits (nur Zeilen mit Limit), reservierte Themen
+  (anlegen/aufheben), Zugangs-Tokens (fremde widerrufen; das Token dieser App ist geschützt) und
+  „Kennwort ändern“.
+- Daten werden nur geladen, solange die Seite offen ist (Herunterziehen = neu laden).
+
+## Aufgeräumt
+- „Fehler melden“ im Menü ausgeblendet (würde zum Original-Projekt führen).
+
 ## Akku / Zuverlässigkeit
 - Standard-Verbindungsprotokoll ist WebSocket statt JSON-Stream (Client-Ping alle 3 Minuten statt
   Server-Keepalive-Text alle 45 s).

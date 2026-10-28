@@ -85,8 +85,10 @@ class NotificationService(val context: Context) {
         val title = formatTitle(appBaseUrl, subscription, notification)
         val groupId = if (subscription.dedicatedChannels) subscriptionGroupId(subscription) else DEFAULT_GROUP
         val channelId = toChannelId(groupId, notification.priority)
+        val silent = !update && QuietHours.silences(repository, notification.priority)
         val insistent = notification.priority == PRIORITY_MAX &&
-                (repository.getInsistentMaxPriorityEnabled() || subscription.insistent == Repository.INSISTENT_MAX_PRIORITY_ENABLED)
+                (repository.getInsistentMaxPriorityEnabled() || subscription.insistent == Repository.INSISTENT_MAX_PRIORITY_ENABLED) &&
+                !silent
         val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_notification)
             .setColor(Colors.notificationIcon(context))
@@ -95,6 +97,7 @@ class NotificationService(val context: Context) {
             .setShowWhen(true)
             .setOnlyAlertOnce(true) // Do not vibrate or play sound if already showing (updates!)
             .setAutoCancel(true) // Cancel when notification is clicked
+            .setSilent(silent) // Quiet hours: show, but without sound or vibration
         setStyleAndText(builder, subscription, notification) // Preview picture or big text style
         setClickAction(builder, subscription, notification)
         maybeSetDeleteIntent(builder, insistent)

@@ -1,0 +1,58 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="8dp">
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/account_reservation_topic">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/account_reservation_topic"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="text"
+            android:maxLength="64" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/account_reservation_everyone"
+        android:textAppearance="?attr/textAppearanceLabelLarge" />
+
+    <RadioGroup
+        android:id="@+id/account_reservation_everyone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:checkedButton="@+id/account_reservation_deny_all">
+
+        <RadioButton
+            android:id="@+id/account_reservation_deny_all"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/account_everyone_deny_all" />
+
+        <RadioButton
+            android:id="@+id/account_reservation_read_only"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/account_everyone_read_only" />
+
+        <RadioButton
+            android:id="@+id/account_reservation_write_only"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/account_everyone_write_only" />
+
+        <RadioButton
+            android:id="@+id/account_reservation_read_write"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/account_everyone_read_write" />
+    </RadioGroup>
+</LinearLayout>

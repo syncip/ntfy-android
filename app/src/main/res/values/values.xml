@@ -26,6 +26,11 @@
     <string name="settings_general_dynamic_colors_key" translatable="false">DynamicColors</string>
     <string name="settings_general_message_bar_key" translatable="false">MessageBarEnabled</string>
     <string name="settings_general_account_sync_key" translatable="false">AccountSyncEnabled</string>
+    <string name="settings_general_account_key" translatable="false">Account</string>
+    <string name="settings_notifications_quiet_hours_key" translatable="false">QuietHoursEnabled</string>
+    <string name="settings_notifications_quiet_hours_start_key" translatable="false">QuietHoursStart</string>
+    <string name="settings_notifications_quiet_hours_end_key" translatable="false">QuietHoursEnd</string>
+    <string name="settings_notifications_quiet_hours_min_priority_key" translatable="false">QuietHoursMinPriority</string>
     <string name="settings_backup_restore_backup_key" translatable="false">Backup</string>
     <string name="settings_backup_restore_restore_key" translatable="false">Restore</string>
     <string name="settings_advanced_broadcast_key" translatable="false">BroadcastEnabled</string>
@@ -88,6 +93,18 @@
         <item>3</item>
         <item>4</item>
         <item>5</item>
+    </string-array>
+    <string-array name="settings_notifications_quiet_hours_min_priority_entries">
+        <item>@string/settings_notifications_quiet_hours_min_priority_default</item>
+        <item>@string/settings_notifications_quiet_hours_min_priority_high</item>
+        <item>@string/settings_notifications_quiet_hours_min_priority_max</item>
+        <item>@string/settings_notifications_quiet_hours_min_priority_none</item>
+    </string-array>
+    <string-array name="settings_notifications_quiet_hours_min_priority_values">
+        <item>3</item>
+        <item>4</item>
+        <item>5</item>
+        <item>6</item> <!-- Same as Repository.QUIET_HOURS_NONE_ALERT -->
     </string-array>
     <string-array name="detail_settings_notifications_min_priority_entries">
         <item>@string/detail_settings_global_setting_title</item>

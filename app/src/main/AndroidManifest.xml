@@ -72,6 +72,12 @@
                     android:value=".ui.MainActivity"/>
         </activity>
 
+        <!-- Account activity -->
+        <activity
+                android:name=".ui.AccountActivity"
+                android:parentActivityName=".ui.MainActivity">
+        </activity>
+
         <!-- Detail settings activity -->
         <activity
                 android:name=".ui.DetailSettingsActivity"

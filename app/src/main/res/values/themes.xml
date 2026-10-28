@@ -74,6 +74,21 @@
 
     <style name="CardView" parent="@style/Widget.Material3.CardView.Elevated" />
 
+    <!-- Account screen: flat outlined cards and small section titles, nothing that competes for attention -->
+    <style name="AccountCard" parent="@style/Widget.Material3.CardView.Outlined">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+    </style>
+
+    <style name="AccountSectionTitle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">24dp</item>
+        <item name="android:layout_marginBottom">8dp</item>
+        <item name="android:textAppearance">?attr/textAppearanceTitleSmall</item>
+        <item name="android:textColor">?attr/colorPrimary</item>
+    </style>
+
     <style name="CardViewBackground" />
 
     <!-- Rounded corners in images, see https://stackoverflow.com/a/61960983/1440785 -->

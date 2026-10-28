@@ -413,6 +413,58 @@
     <string name="user_dialog_login_failed_unauthorized">Benutzername oder Kennwort falsch</string>
     <string name="settings_general_account_sync_summary_enabled">Themen, die du mit deinem Benutzer abonniert hast (z. B. in der Web-App), werden automatisch abonniert</string>
     <string name="settings_general_account_sync_summary_disabled">Themen werden nur in dieser App verwaltet</string>
+    <string name="settings_general_account_summary">Nutzung, reservierte Themen, Zugangs-Tokens, Kennwort</string>
+
+    <!-- Main screen -->
+    <string name="main_menu_mark_all_read">Alle als gelesen markieren</string>
+
+    <!-- Quiet hours -->
+    <string name="settings_notifications_quiet_hours_title">Ruhezeiten</string>
+    <string name="settings_notifications_quiet_hours_summary_enabled">%1$s – %2$s, Benachrichtigungen kommen lautlos</string>
+    <string name="settings_notifications_quiet_hours_summary_disabled">Aus</string>
+    <string name="settings_notifications_quiet_hours_start_title">Beginn</string>
+    <string name="settings_notifications_quiet_hours_end_title">Ende</string>
+    <string name="settings_notifications_quiet_hours_min_priority_title">Trotzdem mit Ton</string>
+    <string name="settings_notifications_quiet_hours_min_priority_default">Normale Priorität und höher</string>
+    <string name="settings_notifications_quiet_hours_min_priority_high">Hohe und dringende Priorität</string>
+    <string name="settings_notifications_quiet_hours_min_priority_max">Nur dringende Priorität</string>
+    <string name="settings_notifications_quiet_hours_min_priority_none">Nichts, alles lautlos</string>
+
+    <!-- Account screen -->
+    <string name="account_title">Konto</string>
+    <string name="account_role_admin">Admin</string>
+    <string name="account_usage_title">Nutzung heute</string>
+    <string name="account_usage_value">%1$s von %2$s</string>
+    <string name="account_usage_messages">Nachrichten</string>
+    <string name="account_usage_emails">E-Mails</string>
+    <string name="account_usage_calls">Anrufe</string>
+    <string name="account_usage_reservations">Reservierte Themen</string>
+    <string name="account_usage_attachments">Speicher für Anhänge</string>
+    <string name="account_reservations_title">Reservierte Themen</string>
+    <string name="account_reservation_add">Reservieren</string>
+    <string name="account_reservation_add_title">Thema reservieren</string>
+    <string name="account_reservation_topic">Name des Themas</string>
+    <string name="account_reservation_everyone">Zugriff für alle anderen</string>
+    <string name="account_reservation_delete_confirm">Reservierung für „%1$s“ aufheben?</string>
+    <string name="account_everyone_deny_all">Nur ich</string>
+    <string name="account_everyone_read_only">Andere dürfen lesen</string>
+    <string name="account_everyone_write_only">Andere dürfen senden</string>
+    <string name="account_everyone_read_write">Andere dürfen lesen und senden</string>
+    <string name="account_tokens_title">Zugangs-Tokens</string>
+    <string name="account_token_this_device">Wird von dieser App genutzt</string>
+    <string name="account_token_last_access">Zuletzt genutzt %1$s</string>
+    <string name="account_token_never_used">nie</string>
+    <string name="account_token_delete_confirm">Token „%1$s“ widerrufen? Apps, die es nutzen, werden abgemeldet.</string>
+    <string name="account_change_password">Kennwort ändern</string>
+    <string name="account_password_current">Aktuelles Kennwort</string>
+    <string name="account_password_new">Neues Kennwort</string>
+    <string name="account_password_save">Ändern</string>
+    <string name="account_password_changed">Kennwort geändert</string>
+    <string name="account_delete">Entfernen</string>
+    <string name="account_cancel">Abbrechen</string>
+    <string name="account_error">Konto konnte nicht geladen werden: %1$s</string>
+    <string name="account_error_unauthorized">Keine Berechtigung. Bitte unter Einstellungen → Benutzer neu anmelden.</string>
+    <string name="account_error_no_user">Kein Benutzer eingerichtet. Lege einen unter Einstellungen → Benutzer an.</string>
     <string name="settings_general_message_bar_title">Meldungsleiste anzeigen</string>
     <string name="settings_general_message_bar_summary_enabled">Nachrichtenleiste unten in der Themenansicht</string>
     <string name="settings_general_message_bar_summary_disabled">Knopf „Veröffentlichen“ unten in der Themenansicht</string>

@@ -14,6 +14,7 @@ import androidx.lifecycle.asLiveData
 import androidx.lifecycle.map
 import io.heckel.ntfy.msg.ApiService
 import io.heckel.ntfy.util.Log
+import io.heckel.ntfy.util.PRIORITY_HIGH
 import io.heckel.ntfy.util.validUrl
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
@@ -404,6 +405,46 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         }
     }
 
+    fun getQuietHoursEnabled(): Boolean {
+        return sharedPrefs.getBoolean(SHARED_PREFS_QUIET_HOURS_ENABLED, false)
+    }
+
+    fun setQuietHoursEnabled(enabled: Boolean) {
+        sharedPrefs.edit {
+            putBoolean(SHARED_PREFS_QUIET_HOURS_ENABLED, enabled)
+        }
+    }
+
+    fun getQuietHoursStart(): Int {
+        return sharedPrefs.getInt(SHARED_PREFS_QUIET_HOURS_START, QUIET_HOURS_START_DEFAULT)
+    }
+
+    fun setQuietHoursStart(minutes: Int) {
+        sharedPrefs.edit {
+            putInt(SHARED_PREFS_QUIET_HOURS_START, minutes)
+        }
+    }
+
+    fun getQuietHoursEnd(): Int {
+        return sharedPrefs.getInt(SHARED_PREFS_QUIET_HOURS_END, QUIET_HOURS_END_DEFAULT)
+    }
+
+    fun setQuietHoursEnd(minutes: Int) {
+        sharedPrefs.edit {
+            putInt(SHARED_PREFS_QUIET_HOURS_END, minutes)
+        }
+    }
+
+    fun getQuietHoursMinPriority(): Int {
+        return sharedPrefs.getInt(SHARED_PREFS_QUIET_HOURS_MIN_PRIORITY, PRIORITY_HIGH) // High and max still alert
+    }
+
+    fun setQuietHoursMinPriority(priority: Int) {
+        sharedPrefs.edit {
+            putInt(SHARED_PREFS_QUIET_HOURS_MIN_PRIORITY, priority)
+        }
+    }
+
     fun getAccountSyncEnabled(): Boolean {
         return sharedPrefs.getBoolean(SHARED_PREFS_ACCOUNT_SYNC_ENABLED, true) // Enabled by default
     }
@@ -679,6 +720,13 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         const val SHARED_PREFS_RECORD_LOGS_ENABLED = "RecordLogs"
         const val SHARED_PREFS_MESSAGE_BAR_ENABLED = "MessageBarEnabled"
         const val SHARED_PREFS_ACCOUNT_SYNC_ENABLED = "AccountSyncEnabled"
+        const val SHARED_PREFS_QUIET_HOURS_ENABLED = "QuietHoursEnabled"
+        const val SHARED_PREFS_QUIET_HOURS_START = "QuietHoursStart"
+        const val SHARED_PREFS_QUIET_HOURS_END = "QuietHoursEnd"
+        const val SHARED_PREFS_QUIET_HOURS_MIN_PRIORITY = "QuietHoursMinPriority"
+        const val QUIET_HOURS_START_DEFAULT = 22 * 60
+        const val QUIET_HOURS_END_DEFAULT = 7 * 60
+        const val QUIET_HOURS_NONE_ALERT = 6 // Above max priority: nothing alerts during quiet hours
         const val SHARED_PREFS_ACCOUNT_SYNCED_TOPICS = "AccountSyncedTopics"
         const val SHARED_PREFS_BATTERY_OPTIMIZATIONS_REMIND_TIME = "BatteryOptimizationsRemindTime" // Timestamp as millis
         const val SHARED_PREFS_WEBSOCKET_REMIND_TIME = "JsonStreamRemindTime" // "Use WebSocket" banner (used to be JSON stream deprecation banner), timestamp as millis

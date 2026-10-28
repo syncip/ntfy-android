@@ -410,6 +410,58 @@
     <string name="user_dialog_login_failed_unauthorized">wrong username or password</string>
     <string name="settings_general_account_sync_summary_enabled">Topics subscribed with your user (e.g. in the web app) are subscribed automatically</string>
     <string name="settings_general_account_sync_summary_disabled">Topics are only managed in this app</string>
+    <string name="settings_general_account_summary">Usage, reserved topics, access tokens, password</string>
+
+    <!-- Main screen -->
+    <string name="main_menu_mark_all_read">Mark all as read</string>
+
+    <!-- Quiet hours -->
+    <string name="settings_notifications_quiet_hours_title">Quiet hours</string>
+    <string name="settings_notifications_quiet_hours_summary_enabled">%1$s – %2$s, notifications arrive silently</string>
+    <string name="settings_notifications_quiet_hours_summary_disabled">Off</string>
+    <string name="settings_notifications_quiet_hours_start_title">Start</string>
+    <string name="settings_notifications_quiet_hours_end_title">End</string>
+    <string name="settings_notifications_quiet_hours_min_priority_title">Still alert for</string>
+    <string name="settings_notifications_quiet_hours_min_priority_default">Default priority and above</string>
+    <string name="settings_notifications_quiet_hours_min_priority_high">High and max priority</string>
+    <string name="settings_notifications_quiet_hours_min_priority_max">Only max priority</string>
+    <string name="settings_notifications_quiet_hours_min_priority_none">Nothing, all silent</string>
+
+    <!-- Account screen -->
+    <string name="account_title">Account</string>
+    <string name="account_role_admin">Admin</string>
+    <string name="account_usage_title">Usage today</string>
+    <string name="account_usage_value">%1$s of %2$s</string>
+    <string name="account_usage_messages">Messages</string>
+    <string name="account_usage_emails">Emails</string>
+    <string name="account_usage_calls">Phone calls</string>
+    <string name="account_usage_reservations">Reserved topics</string>
+    <string name="account_usage_attachments">Attachment storage</string>
+    <string name="account_reservations_title">Reserved topics</string>
+    <string name="account_reservation_add">Reserve</string>
+    <string name="account_reservation_add_title">Reserve topic</string>
+    <string name="account_reservation_topic">Topic name</string>
+    <string name="account_reservation_everyone">Access for everyone else</string>
+    <string name="account_reservation_delete_confirm">Remove reservation for \"%1$s\"?</string>
+    <string name="account_everyone_deny_all">Only me</string>
+    <string name="account_everyone_read_only">Others can read</string>
+    <string name="account_everyone_write_only">Others can publish</string>
+    <string name="account_everyone_read_write">Others can read and publish</string>
+    <string name="account_tokens_title">Access tokens</string>
+    <string name="account_token_this_device">Used by this app</string>
+    <string name="account_token_last_access">Last used %1$s</string>
+    <string name="account_token_never_used">never</string>
+    <string name="account_token_delete_confirm">Revoke token \"%1$s\"? Apps using it will be logged out.</string>
+    <string name="account_change_password">Change password</string>
+    <string name="account_password_current">Current password</string>
+    <string name="account_password_new">New password</string>
+    <string name="account_password_save">Change</string>
+    <string name="account_password_changed">Password changed</string>
+    <string name="account_delete">Remove</string>
+    <string name="account_cancel">Cancel</string>
+    <string name="account_error">Could not load account: %1$s</string>
+    <string name="account_error_unauthorized">Not authorized. Please log in again under Settings → Users.</string>
+    <string name="account_error_no_user">No user set up. Add one under Settings → Users.</string>
     <string name="settings_general_message_bar_title">Show message bar</string>
     <string name="settings_general_message_bar_summary_enabled">Message bar shown at bottom of topic view</string>
     <string name="settings_general_message_bar_summary_disabled">Publish button shown at bottom of topic view</string>
