@@ -433,29 +433,33 @@ class SubscriberService : Service() {
             // - Web app: hooks.js:handleNotification()
             // - Web app: sw.js:handleMessage(), sw.js:handleMessageClear(), ...
 
-            when (notification.event) {
-                ApiService.EVENT_MESSAGE_CLEAR -> {
-                    if (notification.sequenceId.isNotEmpty()) {
-                        repository.markAsReadBySequenceId(subscription.id, notification.sequenceId)
-                    }
-                    repository.updateLastNotificationId(subscription.id, notification.id)
-                    dispatcher.dispatch(subscription, notification)
-                }
-                ApiService.EVENT_MESSAGE_DELETE -> {
-                    if (notification.sequenceId.isNotEmpty()) {
-                        repository.markAsDeletedBySequenceId(subscription.id, notification.sequenceId)
-                    }
-                    repository.updateLastNotificationId(subscription.id, notification.id)
-                    dispatcher.dispatch(subscription, notification)
-                }
-                ApiService.EVENT_MESSAGE -> {
-                    val added = repository.addNotification(notification)
-                    if (added) {
+            try {
+                when (notification.event) {
+                    ApiService.EVENT_MESSAGE_CLEAR -> {
+                        if (notification.sequenceId.isNotEmpty()) {
+                            repository.markAsReadBySequenceId(subscription.id, notification.sequenceId)
+                        }
+                        repository.updateLastNotificationId(subscription.id, notification.id)
                         dispatcher.dispatch(subscription, notification)
                     }
+                    ApiService.EVENT_MESSAGE_DELETE -> {
+                        if (notification.sequenceId.isNotEmpty()) {
+                            repository.markAsDeletedBySequenceId(subscription.id, notification.sequenceId)
+                        }
+                        repository.updateLastNotificationId(subscription.id, notification.id)
+                        dispatcher.dispatch(subscription, notification)
+                    }
+                    ApiService.EVENT_MESSAGE -> {
+                        val added = repository.addNotification(notification)
+                        if (added) {
+                            dispatcher.dispatch(subscription, notification)
+                        }
+                    }
                 }
+            } finally {
+                // Always release, otherwise a failed dispatch keeps the CPU awake until the timeout
+                wakeLock?.let { if (it.isHeld) { it.release() } }
             }
-            wakeLock?.let { if (it.isHeld) { it.release() } }
         }
     }
 
@@ -566,7 +570,7 @@ class SubscriberService : Service() {
         private const val NOTIFICATION_CONNECTION_ALERT_CHANNEL_ID = "ntfy-connection-alert"
         private const val NOTIFICATION_GROUP_ID = "io.heckel.ntfy.NOTIFICATION_GROUP_SERVICE"
         private const val NOTIFICATION_SERVICE_ID = 2586
-        private const val NOTIFICATION_RECEIVED_WAKELOCK_TIMEOUT_MILLIS = 10 * 60 * 1000L /*10 minutes*/
+        private const val NOTIFICATION_RECEIVED_WAKELOCK_TIMEOUT_MILLIS = 60 * 1000L /*1 minute, dispatching takes a few ms*/
 
         const val NOTIFICATION_CONNECTION_ALERT_ID = 2587
         private const val CONNECTION_ALERT_SNOOZE_SHORT_HOURS = 1

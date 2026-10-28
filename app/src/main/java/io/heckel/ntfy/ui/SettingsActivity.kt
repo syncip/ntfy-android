@@ -31,6 +31,7 @@ import io.heckel.ntfy.BuildConfig
 import io.heckel.ntfy.R
 import io.heckel.ntfy.backup.Backuper
 import io.heckel.ntfy.db.CustomHeader
+import io.heckel.ntfy.msg.AccountSyncer
 import io.heckel.ntfy.db.Repository
 import io.heckel.ntfy.db.User
 import io.heckel.ntfy.service.SubscriberServiceManager
@@ -501,6 +502,35 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
                     getString(R.string.settings_general_message_bar_summary_enabled)
                 } else {
                     getString(R.string.settings_general_message_bar_summary_disabled)
+                }
+            }
+
+            // Account sync enabled
+            val accountSyncPrefId = context?.getString(R.string.settings_general_account_sync_key) ?: return
+            val accountSync: SwitchPreferenceCompat? = findPreference(accountSyncPrefId)
+            accountSync?.isChecked = repository.getAccountSyncEnabled()
+            accountSync?.preferenceDataStore = object : PreferenceDataStore() {
+                override fun putBoolean(key: String?, value: Boolean) {
+                    repository.setAccountSyncEnabled(value)
+                    if (value) {
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            try {
+                                AccountSyncer(requireContext().applicationContext).sync()
+                            } catch (e: Exception) {
+                                Log.w(TAG, "Account sync failed: ${e.message}")
+                            }
+                        }
+                    }
+                }
+                override fun getBoolean(key: String?, defValue: Boolean): Boolean {
+                    return repository.getAccountSyncEnabled()
+                }
+            }
+            accountSync?.summaryProvider = Preference.SummaryProvider<SwitchPreferenceCompat> { pref ->
+                if (pref.isChecked) {
+                    getString(R.string.settings_general_account_sync_summary_enabled)
+                } else {
+                    getString(R.string.settings_general_account_sync_summary_disabled)
                 }
             }
 
@@ -1075,9 +1105,18 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
         }
     }
 
+    private suspend fun syncAccount() {
+        try {
+            AccountSyncer(this).sync()
+        } catch (e: Exception) {
+            Log.w(TAG, "Account sync failed: ${e.message}")
+        }
+    }
+
     override fun onAddUser(dialog: DialogFragment, user: User) {
         lifecycleScope.launch(Dispatchers.IO) {
-            repository.addUser(user) // New users are not used, so no service refresh required
+            repository.addUser(user)
+            syncAccount()
             runOnUiThread {
                 if (this@SettingsActivity::userSettingsFragment.isInitialized) {
                     userSettingsFragment.reload()
@@ -1090,6 +1129,7 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
         lifecycleScope.launch(Dispatchers.IO) {
             repository.updateUser(user)
             serviceManager.refresh()
+            syncAccount()
             runOnUiThread {
                 if (this@SettingsActivity::userSettingsFragment.isInitialized) {
                     userSettingsFragment.reload()

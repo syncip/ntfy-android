@@ -53,6 +53,7 @@ import io.heckel.ntfy.app.Application
 import io.heckel.ntfy.db.Repository
 import io.heckel.ntfy.db.Subscription
 import io.heckel.ntfy.firebase.FirebaseMessenger
+import io.heckel.ntfy.msg.AccountSyncer
 import io.heckel.ntfy.msg.ApiService
 import io.heckel.ntfy.msg.DownloadManager
 import io.heckel.ntfy.msg.DownloadType
@@ -375,6 +376,15 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
 
         // Darrkkkk mode
         AppCompatDelegate.setDefaultNightMode(repository.getDarkMode())
+
+        // Subscribe to all topics of the configured accounts
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                AccountSyncer(this@MainActivity).sync()
+            } catch (e: Exception) {
+                Log.w(TAG, "Account sync failed: ${e.message}")
+            }
+        }
 
         // Background things
         schedulePeriodicPollWorker()
@@ -731,6 +741,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
 
         // Fetch cached messages
         lifecycleScope.launch(Dispatchers.IO) {
+            AccountSyncer(this@MainActivity).onLocalSubscribe(baseUrl, topic)
             try {
                 val notifications = poller.poll(subscription)
                 notifications.forEach { notification ->
@@ -765,6 +776,11 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
 
     private fun refreshAllSubscriptions() {
         lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                AccountSyncer(this@MainActivity).sync()
+            } catch (e: Exception) {
+                Log.w(TAG, "Account sync failed: ${e.message}")
+            }
             Log.d(TAG, "Polling for new notifications")
             var errors = 0
             var errorMessage = "" // First error

@@ -405,6 +405,9 @@
     <string name="settings_general_dynamic_colors_title">Dynamic colors</string>
     <string name="settings_general_dynamic_colors_summary_enabled">Using the dynamic system colors</string>
     <string name="settings_general_dynamic_colors_summary_disabled">Using the ntfy theme colors</string>
+    <string name="settings_general_account_sync_title">Sync topics from account</string>
+    <string name="settings_general_account_sync_summary_enabled">Topics subscribed with your user (e.g. in the web app) are subscribed automatically</string>
+    <string name="settings_general_account_sync_summary_disabled">Topics are only managed in this app</string>
     <string name="settings_general_message_bar_title">Show message bar</string>
     <string name="settings_general_message_bar_summary_enabled">Message bar shown at bottom of topic view</string>
     <string name="settings_general_message_bar_summary_disabled">Publish button shown at bottom of topic view</string>

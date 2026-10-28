@@ -351,7 +351,7 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
     }
 
     fun getDynamicColorsEnabled(): Boolean {
-        return sharedPrefs.getBoolean(SHARED_PREFS_DYNAMIC_COLORS, false)
+        return sharedPrefs.getBoolean(SHARED_PREFS_DYNAMIC_COLORS, true)
     }
 
     fun setConnectionProtocol(connectionProtocol: String) {
@@ -361,7 +361,7 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
     }
 
     fun getConnectionProtocol(): String {
-        return sharedPrefs.getString(SHARED_PREFS_CONNECTION_PROTOCOL, null) ?: CONNECTION_PROTOCOL_JSONHTTP
+        return sharedPrefs.getString(SHARED_PREFS_CONNECTION_PROTOCOL, null) ?: CONNECTION_PROTOCOL_WS // WebSocket by default: 3 min client ping instead of 45s server keepalives
     }
 
     fun getBroadcastEnabled(): Boolean {
@@ -401,6 +401,26 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
     fun setRecordLogsEnabled(enabled: Boolean) {
         sharedPrefs.edit {
             putBoolean(SHARED_PREFS_RECORD_LOGS_ENABLED, enabled)
+        }
+    }
+
+    fun getAccountSyncEnabled(): Boolean {
+        return sharedPrefs.getBoolean(SHARED_PREFS_ACCOUNT_SYNC_ENABLED, true) // Enabled by default
+    }
+
+    fun setAccountSyncEnabled(enabled: Boolean) {
+        sharedPrefs.edit {
+            putBoolean(SHARED_PREFS_ACCOUNT_SYNC_ENABLED, enabled)
+        }
+    }
+
+    fun getAccountSyncedTopics(): Set<String> {
+        return sharedPrefs.getStringSet(SHARED_PREFS_ACCOUNT_SYNCED_TOPICS, null)?.toSet() ?: emptySet()
+    }
+
+    fun setAccountSyncedTopics(topics: Set<String>) {
+        sharedPrefs.edit {
+            putStringSet(SHARED_PREFS_ACCOUNT_SYNCED_TOPICS, topics)
         }
     }
 
@@ -658,6 +678,8 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         const val SHARED_PREFS_INSISTENT_MAX_PRIORITY_ENABLED = "InsistentMaxPriority"
         const val SHARED_PREFS_RECORD_LOGS_ENABLED = "RecordLogs"
         const val SHARED_PREFS_MESSAGE_BAR_ENABLED = "MessageBarEnabled"
+        const val SHARED_PREFS_ACCOUNT_SYNC_ENABLED = "AccountSyncEnabled"
+        const val SHARED_PREFS_ACCOUNT_SYNCED_TOPICS = "AccountSyncedTopics"
         const val SHARED_PREFS_BATTERY_OPTIMIZATIONS_REMIND_TIME = "BatteryOptimizationsRemindTime" // Timestamp as millis
         const val SHARED_PREFS_WEBSOCKET_REMIND_TIME = "JsonStreamRemindTime" // "Use WebSocket" banner (used to be JSON stream deprecation banner), timestamp as millis
         const val SHARED_PREFS_WEBSOCKET_RECONNECT_REMIND_TIME = "WebSocketReconnectRemindTime" // Timestamp as millis

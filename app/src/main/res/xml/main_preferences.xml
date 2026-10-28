@@ -43,6 +43,10 @@
                 app:title="@string/settings_general_users_title"
                 app:summary="@string/settings_general_users_summary"
                 app:fragment="io.heckel.ntfy.ui.SettingsActivity$UserSettingsFragment"/>
+        <SwitchPreferenceCompat
+                app:key="@string/settings_general_account_sync_key"
+                app:title="@string/settings_general_account_sync_title"
+                app:defaultValue="true"/>
         <ListPreference
                 app:key="@string/settings_general_language_key"
                 app:title="@string/settings_general_language_title"/>

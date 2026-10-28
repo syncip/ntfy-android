@@ -37,6 +37,7 @@ import io.heckel.ntfy.db.Notification
 import io.heckel.ntfy.db.Repository
 import io.heckel.ntfy.db.Subscription
 import io.heckel.ntfy.firebase.FirebaseMessenger
+import io.heckel.ntfy.msg.AccountSyncer
 import io.heckel.ntfy.msg.ApiService
 import io.heckel.ntfy.msg.NotificationService
 import io.heckel.ntfy.msg.Poller
@@ -915,6 +916,7 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
                 Log.d(TAG, "Deleting subscription with subscription ID $subscriptionId (topic: $subscriptionTopic)")
                 GlobalScope.launch(Dispatchers.IO) {
                     val subscription = repository.getSubscription(subscriptionId) ?: return@launch
+                    AccountSyncer(applicationContext).onLocalUnsubscribe(subscription.baseUrl, subscription.topic)
                     repository.removeSubscription(subscription)
                     if (subscriptionBaseUrl == appBaseUrl) {
                         messenger.unsubscribe(subscriptionTopic)

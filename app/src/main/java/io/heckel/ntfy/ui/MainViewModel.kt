@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import io.heckel.ntfy.R
 import io.heckel.ntfy.db.*
 import io.heckel.ntfy.firebase.FirebaseMessenger
+import io.heckel.ntfy.msg.AccountSyncer
 import io.heckel.ntfy.up.Distributor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -28,6 +29,7 @@ class SubscriptionsViewModel(private val repository: Repository) : ViewModel() {
 
     fun remove(context: Context, subscriptionId: Long) = viewModelScope.launch(Dispatchers.IO) {
         val subscription = repository.getSubscription(subscriptionId) ?: return@launch
+        AccountSyncer(context.applicationContext).onLocalUnsubscribe(subscription.baseUrl, subscription.topic)
         if (subscription.upAppId != null && subscription.upConnectorToken != null) {
             val distributor = Distributor(context)
             distributor.sendUnregistered(subscription.upAppId, subscription.upConnectorToken)

@@ -5,6 +5,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import io.heckel.ntfy.BuildConfig
 import io.heckel.ntfy.db.Repository
+import io.heckel.ntfy.msg.AccountSyncer
 import io.heckel.ntfy.msg.ApiService
 import io.heckel.ntfy.msg.NotificationDispatcher
 import io.heckel.ntfy.msg.Poller
@@ -35,6 +36,11 @@ class PollWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
                 val subscription = repository.getSubscription(baseUrl, topic) ?: return@withContext Result.success()
                 listOf(subscription)
             } else {
+                try {
+                    AccountSyncer(applicationContext).sync() // Pick up topics subscribed via the web app
+                } catch (e: Exception) {
+                    Log.w(TAG, "Account sync failed: ${e.message}")
+                }
                 repository.getSubscriptions()
             }
 
