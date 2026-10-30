@@ -115,7 +115,7 @@ class DetailAdapter(private val activity: Activity, private val lifecycleScope: 
             val unmatchedTags = unmatchedTags(splitTags(notification.tags))
             val message = maybeAppendActionErrors(formatMessage(notification), notification)
 
-            dateView.text = formatDateShort(notification.timestamp)
+            dateView.text = formatDateWithSeconds(notification.timestamp)
             if (notification.isMarkdown()) {
                 messageView.autoLinkMask = 0
                 markwon.setMarkdown(messageView, message.toString())

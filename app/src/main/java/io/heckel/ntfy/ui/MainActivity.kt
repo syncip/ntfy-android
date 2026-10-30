@@ -147,6 +147,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         setContentView(R.layout.activity_main)
 
         Log.init(this) // Init logs in all entry points
+        repository.setAppQuit(false) // Opening the app brings everything back after "Quit"
         Log.d(TAG, "Create $this")
 
         // Dependencies that depend on Context
@@ -656,6 +657,10 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
                 AccountActivity.start(this)
                 true
             }
+            R.id.main_menu_quit -> {
+                onQuitClick()
+                true
+            }
             R.id.main_menu_settings -> {
                 startActivity(Intent(this, SettingsActivity::class.java))
                 true
@@ -691,6 +696,18 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
     private fun showHideMarkAllReadMenuItem(subscriptions: List<Subscription>) {
         if (!this::menu.isInitialized) return
         menu.findItem(R.id.main_menu_mark_all_read)?.isVisible = subscriptions.any { it.newCount > 0 }
+    }
+
+    private fun onQuitClick() {
+        MaterialAlertDialogBuilder(this)
+            .setMessage(R.string.main_quit_dialog_message)
+            .setPositiveButton(R.string.main_quit_dialog_quit) { _, _ ->
+                repository.setAppQuit(true)
+                stopService(Intent(this, SubscriberService::class.java))
+                finishAndRemoveTask()
+            }
+            .setNegativeButton(R.string.main_quit_dialog_cancel, null)
+            .show()
     }
 
     private fun onMarkAllReadClick() {
@@ -994,6 +1011,6 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
 
         const val POLL_WORKER_INTERVAL_MINUTES = 60L
         const val DELETE_WORKER_INTERVAL_MINUTES = 8 * 60L
-        const val SERVICE_START_WORKER_INTERVAL_MINUTES = 3 * 60L
+        const val SERVICE_START_WORKER_INTERVAL_MINUTES = 30L // Only a safety net; the check itself is cheap
     }
 }

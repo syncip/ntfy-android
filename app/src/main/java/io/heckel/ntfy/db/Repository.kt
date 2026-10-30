@@ -413,17 +413,25 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         }
     }
 
-    /** True for the first message since everything was read, so that only that one makes a sound. */
-    @Synchronized
-    fun claimUnreadAlert(): Boolean {
-        if (sharedPrefs.getBoolean(SHARED_PREFS_UNREAD_ALERTED, false)) return false
-        sharedPrefs.edit { putBoolean(SHARED_PREFS_UNREAD_ALERTED, true) }
-        return true
+    /** Set by "Quit" in the menu: nothing may run in the background until the app is opened again. */
+    fun getAppQuit(): Boolean {
+        return sharedPrefs.getBoolean(SHARED_PREFS_APP_QUIT, false)
     }
 
-    @Synchronized
-    fun resetUnreadAlert() {
-        sharedPrefs.edit { putBoolean(SHARED_PREFS_UNREAD_ALERTED, false) }
+    fun setAppQuit(quit: Boolean) {
+        sharedPrefs.edit(commit = true) {
+            putBoolean(SHARED_PREFS_APP_QUIT, quit)
+        }
+    }
+
+    fun getSwipeMarksRead(): Boolean {
+        return sharedPrefs.getBoolean(SHARED_PREFS_SWIPE_MARKS_READ, false) // Default: only opening marks as read
+    }
+
+    fun setSwipeMarksRead(enabled: Boolean) {
+        sharedPrefs.edit {
+            putBoolean(SHARED_PREFS_SWIPE_MARKS_READ, enabled)
+        }
     }
 
     fun getReadSyncEnabled(): Boolean {
@@ -712,7 +720,8 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         const val SHARED_PREFS_MESSAGE_BAR_ENABLED = "MessageBarEnabled"
         const val SHARED_PREFS_ACCOUNT_SYNC_ENABLED = "AccountSyncEnabled"
         const val SHARED_PREFS_READ_SYNC_ENABLED = "ReadSyncEnabled"
-        const val SHARED_PREFS_UNREAD_ALERTED = "UnreadAlerted"
+        const val SHARED_PREFS_APP_QUIT = "AppQuit"
+        const val SHARED_PREFS_SWIPE_MARKS_READ = "SwipeMarksRead"
         const val SHARED_PREFS_ACCOUNT_SYNCED_TOPICS = "AccountSyncedTopics"
         const val SHARED_PREFS_BATTERY_OPTIMIZATIONS_REMIND_TIME = "BatteryOptimizationsRemindTime" // Timestamp as millis
         const val SHARED_PREFS_WEBSOCKET_REMIND_TIME = "JsonStreamRemindTime" // "Use WebSocket" banner (used to be JSON stream deprecation banner), timestamp as millis

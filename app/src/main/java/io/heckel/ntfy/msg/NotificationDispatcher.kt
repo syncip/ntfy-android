@@ -35,10 +35,7 @@ class NotificationDispatcher(val context: Context, val repository: Repository) {
         if (cancel) {
             notifier.cancel(notification.notificationId)
         } else if (notify) {
-            // No box per message: the count is shown in the permanent notification, see SubscriberService
-            if (repository.claimUnreadAlert()) {
-                notifier.alertOnce()
-            }
+            notifier.display(subscription, notification)
         }
         if (broadcast) {
             broadcaster.sendMessage(subscription, notification, muted)

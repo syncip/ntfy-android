@@ -418,8 +418,13 @@
     <!-- Main screen -->
     <string name="main_menu_mark_all_read">Alle als gelesen markieren</string>
 
-    <string name="channel_alert_name">Neue Benachrichtigungen</string>
-    <string name="channel_alert_title">Neue Benachrichtigungen verfügbar</string>
+    <string name="main_menu_quit_title">Beenden</string>
+    <string name="main_quit_dialog_message">App beenden? Du bekommst keine Benachrichtigungen mehr, bis du sie wieder öffnest.</string>
+    <string name="main_quit_dialog_quit">Beenden</string>
+    <string name="main_quit_dialog_cancel">Abbrechen</string>
+    <string name="settings_notifications_swipe_marks_read_title">Wegwischen markiert als gelesen</string>
+    <string name="settings_notifications_swipe_marks_read_summary_enabled">Eine weggewischte Benachrichtigung gilt als gelesen</string>
+    <string name="settings_notifications_swipe_marks_read_summary_disabled">Nur das Öffnen eines Themas markiert als gelesen</string>
     <plurals name="channel_subscriber_notification_unread">
         <item quantity="one">%d neue Benachrichtigung</item>
         <item quantity="other">%d neue Benachrichtigungen</item>

@@ -41,7 +41,7 @@ class SubscriberServiceManager(private val context: Context) {
                 val app = context.applicationContext as Application
                 val subscriptionIdsWithInstantStatus = app.repository.getSubscriptionIdsWithInstantStatus()
                 val instantSubscriptions = subscriptionIdsWithInstantStatus.toList().filter { (_, instant) -> instant }.size
-                if (instantSubscriptions > 0) {
+                if (instantSubscriptions > 0 && !app.repository.getAppQuit()) {
                     // We have instant subscriptions, start the service
                     Log.d(TAG, "ServiceStartWorker: Starting foreground service (work ID: ${id})")
                     Intent(context, SubscriberService::class.java).also {

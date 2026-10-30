@@ -28,16 +28,26 @@ Basis: https://github.com/binwiederhier/ntfy-android (Apache 2.0)
 - Schlägt die Anmeldung fehl, wird der Benutzer nicht gespeichert. Nur wenn ein Server gar keine
   Tokens kennt (404), bleibt das Kennwort als einzige Möglichkeit gespeichert.
 
-## Eine Benachrichtigung statt vieler
-- Es gibt keine eigene Box pro Nachricht mehr. Die dauerhafte Benachrichtigung zeigt
-  „3 neue Benachrichtigungen“ und, aufgeklappt, den Button „Alle als gelesen markieren“.
-- Der Zähler kommt aus der Datenbank und stimmt immer, auch wenn im Web gelesen wird.
-- Ton: Die erste Nachricht, nachdem alles gelesen war, löst einmal den Kanal „Neue
-  Benachrichtigungen“ aus (Ton und Uhr; 4 Sekunden sichtbar). Weitere Nachrichten erhöhen nur den
-  Zähler, bis wieder alles gelesen ist. Das gilt für alle Prioritäten, auch Priorität 5.
-- Ton und Vibration lassen sich in den Android-Einstellungen des Kanals ändern.
-- Aktionsbuttons aus Nachrichten stehen nur noch in der App zur Verfügung.
-- Ausgeblendet, weil ohne eigene Boxen sinnlos: Daueralarm für Priorität 5, eigene Kanäle pro Thema.
+## Benachrichtigungen
+- Jede Nachricht bekommt eine eigene Benachrichtigung mit Ton, auch Priorität 1 und 2
+  (eigene hörbare Kanäle `-min-sound` und `-low-sound`).
+- Die dauerhafte Benachrichtigung zeigt die Zahl der ungelesenen Nachrichten und, aufgeklappt,
+  „Alle als gelesen markieren“.
+- Zeitstempel in der Nachrichtenliste sekundengenau.
+
+## Dauerbetrieb
+- Beendet Android den Dienst, baut er nach dem automatischen Neustart sofort wieder die Verbindung
+  auf (vorher erst beim Prüfjob, bis zu 3 Stunden später). Im Test: etwa 4 Sekunden.
+- Neustart nach dem Wischen aus „Letzte Apps“ repariert.
+- Prüfjob alle 30 Minuten statt alle 3 Stunden, als Sicherheitsnetz.
+- Exakte Alarme für das Wiederverbinden sind automatisch erlaubt (`USE_EXACT_ALARM`), der
+  entsprechende Hinweis entfällt. Das geht, weil die App nicht über Google Play verteilt wird.
+- Dienst-Typ `specialUse`: kein Zeitlimit für Vordergrunddienste unter Android 15.
+- Weiterhin nötig: Akku-Optimierung für die App ausschalten.
+
+## Beenden
+- Hauptmenü → „Beenden“ (mit Rückfrage): stoppt Dienst, Verbindung und Hintergrundabfragen.
+- Die App bleibt aus, auch nach einem Geräteneustart, bis sie wieder geöffnet wird.
 
 ## Alle als gelesen markieren
 - Häkchen-Symbol oben auf der Hauptseite, nur sichtbar, wenn es ungelesene Nachrichten gibt.
@@ -52,7 +62,9 @@ v2.17.0). Der Server macht daraus ein `message_clear`-Ereignis, das Web-App und 
 **App → Web** (`msg/ReadSync.kt`)
 - Beim Öffnen eines Themas und bei „Alle als gelesen“ meldet die App die ungelesenen Nachrichten
   (höchstens die 50 neuesten pro Aktion) als gelesen.
-- Einstellungen → Benachrichtigungen: „Gelesen-Status mit Web-App abgleichen“.
+- Optional auch beim Wegwischen einer Benachrichtigung (Standard: aus).
+- Einstellungen → Benachrichtigungen: „Gelesen-Status mit Web-App abgleichen“ und
+  „Wegwischen markiert als gelesen“.
 - Gesendet wird per WorkManager, nur mit Netz, gedrosselt (200 ms Abstand), mit Wiederholung bei
   Netzfehlern oder Rate-Limit. Kein Dauer-Polling.
 - Braucht Schreibrecht auf das Thema; ohne Schreibrecht wird es still übersprungen.

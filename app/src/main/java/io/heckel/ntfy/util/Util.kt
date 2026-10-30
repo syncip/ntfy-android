@@ -130,6 +130,11 @@ fun normalizeBaseUrl(url: String): String {
     return url.trimEnd('/')
 }
 
+fun formatDateWithSeconds(timestampSecs: Long): String {
+    val date = Date(timestampSecs*1000)
+    return DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.MEDIUM).format(date)
+}
+
 fun formatDateShort(timestampSecs: Long): String {
     val date = Date(timestampSecs*1000)
     return DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(date)

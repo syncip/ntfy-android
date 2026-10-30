@@ -28,6 +28,7 @@
     <string name="settings_general_account_sync_key" translatable="false">AccountSyncEnabled</string>
     <string name="settings_general_account_key" translatable="false">Account</string>
     <string name="settings_notifications_read_sync_key" translatable="false">ReadSyncEnabled</string>
+    <string name="settings_notifications_swipe_marks_read_key" translatable="false">SwipeMarksRead</string>
     <string name="settings_backup_restore_backup_key" translatable="false">Backup</string>
     <string name="settings_backup_restore_restore_key" translatable="false">Restore</string>
     <string name="settings_advanced_broadcast_key" translatable="false">BroadcastEnabled</string>

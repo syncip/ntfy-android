@@ -94,6 +94,12 @@ class SubscriberService : Service() {
             initializeForegroundState()
         }
 
+        if (repository.getAppQuit()) {
+            Log.d(TAG, "App was quit by the user, not running")
+            stopService()
+            return START_NOT_STICKY
+        }
+
         if (intent != null) {
             Log.d(TAG, "using an intent with action ${intent.action}")
             when (intent.action) {
@@ -102,7 +108,10 @@ class SubscriberService : Service() {
                 else -> Log.w(TAG, "This should never happen. No action in the received intent")
             }
         } else {
+            // Restarted by the system after it killed us (START_STICKY). Without this, there would be
+            // no connection until the next periodic ServiceStartWorker run.
             Log.d(TAG, "with a null intent. It has been probably restarted by the system.")
+            startService()
         }
         return START_STICKY // restart if system kills the service
     }
@@ -179,9 +188,6 @@ class SubscriberService : Service() {
 
     private fun onUnreadCountChanged(count: Int) {
         unreadCount = count
-        if (count == 0) {
-            repository.resetUnreadAlert()
-        }
         serviceNotification = createNotification(serviceNotificationTitle, serviceNotificationText)
         notificationManager?.notify(NOTIFICATION_SERVICE_ID, serviceNotification)
     }
@@ -538,11 +544,15 @@ class SubscriberService : Service() {
 
     /* This re-schedules the task when the "Clear recent apps" button is pressed */
     override fun onTaskRemoved(rootIntent: Intent) {
+        if (repository.getAppQuit()) {
+            return
+        }
         val restartServiceIntent = Intent(applicationContext, SubscriberService::class.java).also {
             it.setPackage(packageName)
+            it.action = Action.START.name // Without an action, onStartCommand would ignore it
         }
         val restartServicePendingIntent: PendingIntent =
-            PendingIntent.getService(this, 1, restartServiceIntent, PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE)
+            PendingIntent.getForegroundService(this, 1, restartServiceIntent, PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE)
         applicationContext.getSystemService(ALARM_SERVICE)
         val alarmService: AlarmManager = applicationContext.getSystemService(ALARM_SERVICE) as AlarmManager
         alarmService.set(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() + 1000, restartServicePendingIntent)

@@ -415,8 +415,13 @@
     <!-- Main screen -->
     <string name="main_menu_mark_all_read">Mark all as read</string>
 
-    <string name="channel_alert_name">New notifications</string>
-    <string name="channel_alert_title">New notifications available</string>
+    <string name="main_menu_quit_title">Quit</string>
+    <string name="main_quit_dialog_message">Quit the app? You won\'t receive any notifications until you open it again.</string>
+    <string name="main_quit_dialog_quit">Quit</string>
+    <string name="main_quit_dialog_cancel">Cancel</string>
+    <string name="settings_notifications_swipe_marks_read_title">Swiping away marks as read</string>
+    <string name="settings_notifications_swipe_marks_read_summary_enabled">Swiping a notification away marks the message as read</string>
+    <string name="settings_notifications_swipe_marks_read_summary_disabled">Only opening a topic marks messages as read</string>
     <plurals name="channel_subscriber_notification_unread">
         <item quantity="one">%d new notification</item>
         <item quantity="other">%d new notifications</item>

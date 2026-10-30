@@ -36,6 +36,9 @@
         android:id="@+id/main_menu_settings"
         android:title="@string/main_menu_settings_title" />
     <item
+        android:id="@+id/main_menu_quit"
+        android:title="@string/main_menu_quit_title" />
+    <item
         android:id="@+id/main_menu_docs"
         android:title="@string/main_menu_docs_title" />
     <item
