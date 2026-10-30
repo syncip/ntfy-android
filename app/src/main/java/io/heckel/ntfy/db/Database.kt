@@ -593,6 +593,9 @@ interface NotificationDao {
     @Query("SELECT * FROM notification WHERE notificationId != 0 AND deleted != 1")
     suspend fun listUnread(): List<Notification>
 
+    @Query("SELECT COUNT(*) FROM notification WHERE notificationId != 0 AND deleted != 1")
+    fun unreadCountFlow(): Flow<Int>
+
     @Query("""
         SELECT * FROM notification
         WHERE subscriptionId = :subscriptionId

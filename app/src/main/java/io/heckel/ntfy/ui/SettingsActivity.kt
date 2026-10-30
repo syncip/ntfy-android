@@ -26,8 +26,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.preference.*
 import androidx.preference.Preference.OnPreferenceClickListener
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.timepicker.MaterialTimePicker
-import com.google.android.material.timepicker.TimeFormat
 import com.google.gson.Gson
 import io.heckel.ntfy.BuildConfig
 import io.heckel.ntfy.R
@@ -166,26 +164,6 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
         private lateinit var serviceManager: SubscriberServiceManager
         private var autoDownloadSelection = AUTO_DOWNLOAD_SELECTION_NOT_SET
 
-        private fun formatMinutesOfDay(minutes: Int): String {
-            val calendar = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, minutes / 60)
-                set(Calendar.MINUTE, minutes % 60)
-            }
-            return android.text.format.DateFormat.getTimeFormat(requireContext()).format(calendar.time)
-        }
-
-        private fun showTimePicker(titleResId: Int, minutes: Int, onSelected: (Int) -> Unit) {
-            val format = if (android.text.format.DateFormat.is24HourFormat(requireContext())) TimeFormat.CLOCK_24H else TimeFormat.CLOCK_12H
-            val picker = MaterialTimePicker.Builder()
-                .setTimeFormat(format)
-                .setHour(minutes / 60)
-                .setMinute(minutes % 60)
-                .setTitleText(titleResId)
-                .build()
-            picker.addOnPositiveButtonClickListener { onSelected(picker.hour * 60 + picker.minute) }
-            picker.show(parentFragmentManager, "QuietHoursTimePicker")
-        }
-
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.main_preferences, rootKey)
 
@@ -262,68 +240,6 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
                 }
             }
 
-            // Quiet hours
-            val quietHours: SwitchPreferenceCompat? = findPreference(getString(R.string.settings_notifications_quiet_hours_key))
-            val quietHoursStart: Preference? = findPreference(getString(R.string.settings_notifications_quiet_hours_start_key))
-            val quietHoursEnd: Preference? = findPreference(getString(R.string.settings_notifications_quiet_hours_end_key))
-            val quietHoursMinPriority: ListPreference? = findPreference(getString(R.string.settings_notifications_quiet_hours_min_priority_key))
-            val updateQuietHoursPrefs = {
-                val enabled = repository.getQuietHoursEnabled()
-                quietHoursStart?.isVisible = enabled // Hide details when off, keeps the settings screen short
-                quietHoursEnd?.isVisible = enabled
-                quietHoursMinPriority?.isVisible = enabled
-                quietHoursStart?.summary = formatMinutesOfDay(repository.getQuietHoursStart())
-                quietHoursEnd?.summary = formatMinutesOfDay(repository.getQuietHoursEnd())
-            }
-            quietHours?.isChecked = repository.getQuietHoursEnabled()
-            quietHours?.preferenceDataStore = object : PreferenceDataStore() {
-                override fun putBoolean(key: String?, value: Boolean) {
-                    repository.setQuietHoursEnabled(value)
-                    updateQuietHoursPrefs()
-                }
-                override fun getBoolean(key: String?, defValue: Boolean): Boolean {
-                    return repository.getQuietHoursEnabled()
-                }
-            }
-            quietHours?.summaryProvider = Preference.SummaryProvider<SwitchPreferenceCompat> { pref ->
-                if (pref.isChecked) {
-                    getString(
-                        R.string.settings_notifications_quiet_hours_summary_enabled,
-                        formatMinutesOfDay(repository.getQuietHoursStart()),
-                        formatMinutesOfDay(repository.getQuietHoursEnd())
-                    )
-                } else {
-                    getString(R.string.settings_notifications_quiet_hours_summary_disabled)
-                }
-            }
-            quietHoursStart?.onPreferenceClickListener = OnPreferenceClickListener {
-                showTimePicker(R.string.settings_notifications_quiet_hours_start_title, repository.getQuietHoursStart()) { minutes ->
-                    repository.setQuietHoursStart(minutes)
-                    updateQuietHoursPrefs()
-                    quietHours?.let { it.summaryProvider = it.summaryProvider } // Re-render "22:00 – 07:00"
-                }
-                true
-            }
-            quietHoursEnd?.onPreferenceClickListener = OnPreferenceClickListener {
-                showTimePicker(R.string.settings_notifications_quiet_hours_end_title, repository.getQuietHoursEnd()) { minutes ->
-                    repository.setQuietHoursEnd(minutes)
-                    updateQuietHoursPrefs()
-                    quietHours?.let { it.summaryProvider = it.summaryProvider }
-                }
-                true
-            }
-            quietHoursMinPriority?.value = repository.getQuietHoursMinPriority().toString()
-            quietHoursMinPriority?.preferenceDataStore = object : PreferenceDataStore() {
-                override fun putString(key: String?, value: String?) {
-                    repository.setQuietHoursMinPriority(value?.toIntOrNull() ?: return)
-                }
-                override fun getString(key: String?, defValue: String?): String {
-                    return repository.getQuietHoursMinPriority().toString()
-                }
-            }
-            quietHoursMinPriority?.summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
-            updateQuietHoursPrefs()
-
             // Read state sync with the web app
             val readSync: SwitchPreferenceCompat? = findPreference(getString(R.string.settings_notifications_read_sync_key))
             readSync?.isChecked = repository.getReadSyncEnabled()
@@ -340,23 +256,6 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
                     getString(R.string.settings_notifications_read_sync_summary_enabled)
                 } else {
                     getString(R.string.settings_notifications_read_sync_summary_disabled)
-                }
-            }
-            val swipeMarksRead: SwitchPreferenceCompat? = findPreference(getString(R.string.settings_notifications_swipe_marks_read_key))
-            swipeMarksRead?.isChecked = repository.getSwipeMarksRead()
-            swipeMarksRead?.preferenceDataStore = object : PreferenceDataStore() {
-                override fun putBoolean(key: String?, value: Boolean) {
-                    repository.setSwipeMarksRead(value)
-                }
-                override fun getBoolean(key: String?, defValue: Boolean): Boolean {
-                    return repository.getSwipeMarksRead()
-                }
-            }
-            swipeMarksRead?.summaryProvider = Preference.SummaryProvider<SwitchPreferenceCompat> { pref ->
-                if (pref.isChecked) {
-                    getString(R.string.settings_notifications_swipe_marks_read_summary_enabled)
-                } else {
-                    getString(R.string.settings_notifications_swipe_marks_read_summary_disabled)
                 }
             }
 

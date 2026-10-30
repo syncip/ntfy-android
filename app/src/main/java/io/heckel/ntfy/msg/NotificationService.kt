@@ -21,8 +21,6 @@ import io.heckel.ntfy.ui.MainActivity
 import io.heckel.ntfy.util.*
 import java.util.*
 import androidx.core.net.toUri
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
 class NotificationService(val context: Context) {
@@ -59,8 +57,27 @@ class NotificationService(val context: Context) {
     }
 
     fun createDefaultNotificationChannels() {
-        maybeCreateNotificationGroup(DEFAULT_GROUP, context.getString(R.string.channel_notifications_group_default_name))
-        ALL_PRIORITIES.forEach { priority -> maybeCreateNotificationChannel(DEFAULT_GROUP, priority) }
+        maybeDeleteNotificationGroup(DEFAULT_GROUP) // Per-priority channels are not used anymore
+        notificationManager.createNotificationChannel(
+            NotificationChannel(ALERT_CHANNEL_ID, context.getString(R.string.channel_alert_name), NotificationManager.IMPORTANCE_DEFAULT)
+        )
+    }
+
+    /**
+     * Plays the sound of the alert channel once. The notification removes itself right away,
+     * so that the permanent notification stays the only one in the status bar.
+     */
+    fun alertOnce() {
+        val intent = Intent(context, MainActivity::class.java)
+        val notification = NotificationCompat.Builder(context, ALERT_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setColor(Colors.notificationIcon(context))
+            .setContentTitle(context.getString(R.string.channel_alert_title))
+            .setContentIntent(PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE))
+            .setAutoCancel(true)
+            .setTimeoutAfter(ALERT_TIMEOUT_MILLIS)
+            .build()
+        notificationManager.notify(ALERT_NOTIFICATION_ID, notification)
     }
 
     fun createSubscriptionNotificationChannels(subscription: Subscription) {
@@ -87,10 +104,8 @@ class NotificationService(val context: Context) {
         val title = formatTitle(appBaseUrl, subscription, notification)
         val groupId = if (subscription.dedicatedChannels) subscriptionGroupId(subscription) else DEFAULT_GROUP
         val channelId = toChannelId(groupId, notification.priority)
-        val silent = !update && QuietHours.silences(repository, notification.priority)
         val insistent = notification.priority == PRIORITY_MAX &&
-                (repository.getInsistentMaxPriorityEnabled() || subscription.insistent == Repository.INSISTENT_MAX_PRIORITY_ENABLED) &&
-                !silent
+                (repository.getInsistentMaxPriorityEnabled() || subscription.insistent == Repository.INSISTENT_MAX_PRIORITY_ENABLED)
         val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_notification)
             .setColor(Colors.notificationIcon(context))
@@ -99,10 +114,9 @@ class NotificationService(val context: Context) {
             .setShowWhen(true)
             .setOnlyAlertOnce(true) // Do not vibrate or play sound if already showing (updates!)
             .setAutoCancel(true) // Cancel when notification is clicked
-            .setSilent(silent) // Quiet hours: show, but without sound or vibration
         setStyleAndText(builder, subscription, notification) // Preview picture or big text style
         setClickAction(builder, subscription, notification)
-        setDeleteIntent(builder, subscription, notification, insistent)
+        maybeSetDeleteIntent(builder, insistent)
         maybeSetSound(builder, insistent, update)
         maybeSetProgress(builder, notification)
         maybeAddOpenAction(builder, notification)
@@ -118,13 +132,11 @@ class NotificationService(val context: Context) {
         notificationManager.notify(notification.notificationId, builder.build())
     }
 
-    private fun setDeleteIntent(builder: NotificationCompat.Builder, subscription: Subscription, notification: Notification, insistent: Boolean) {
-        // Always set, so that "swipe marks as read" also works for notifications shown before it was turned on
-        val intent = Intent(context, DeleteBroadcastReceiver::class.java).apply {
-            putExtra(DELETE_EXTRA_INSISTENT, insistent)
-            putExtra(DELETE_EXTRA_SUBSCRIPTION_ID, subscription.id)
-            putExtra(DELETE_EXTRA_SEQUENCE_ID, notification.sequenceId.ifEmpty { notification.id })
+    private fun maybeSetDeleteIntent(builder: NotificationCompat.Builder, insistent: Boolean) {
+        if (!insistent) {
+            return
         }
+        val intent = Intent(context, DeleteBroadcastReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(context, Random().nextInt(), intent, PendingIntent.FLAG_IMMUTABLE)
         builder.setDeleteIntent(pendingIntent)
     }
@@ -351,32 +363,14 @@ class NotificationService(val context: Context) {
     }
 
     /**
-     * Receives a broadcast when a notification is swiped away: stops the insistent sound and,
-     * if enabled, marks the message as read (here and in the web app).
+     * Receives a broadcast when a notification is swiped away. This is currently
+     * only called for notifications with an insistent sound.
      */
     class DeleteBroadcastReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            val repository = Repository.getInstance(context)
-            if (intent.getBooleanExtra(DELETE_EXTRA_INSISTENT, true)) {
-                Log.d(TAG, "Media player: Stopping insistent ring")
-                repository.mediaPlayer.stop()
-            }
-            val subscriptionId = intent.getLongExtra(DELETE_EXTRA_SUBSCRIPTION_ID, 0L)
-            val sequenceId = intent.getStringExtra(DELETE_EXTRA_SEQUENCE_ID)
-            if (!repository.getSwipeMarksRead() || subscriptionId == 0L || sequenceId == null) {
-                return
-            }
-            val pendingResult = goAsync()
-            GlobalScope.launch(Dispatchers.IO) {
-                try {
-                    repository.markAsReadBySequenceId(subscriptionId, sequenceId)
-                    repository.getSubscription(subscriptionId)?.let {
-                        ReadSync.enqueue(context, it.baseUrl, it.topic, listOf(sequenceId))
-                    }
-                } finally {
-                    pendingResult.finish()
-                }
-            }
+            Log.d(TAG, "Media player: Stopping insistent ring")
+            val mediaPlayer = Repository.getInstance(context).mediaPlayer
+            mediaPlayer.stop()
         }
     }
 
@@ -545,9 +539,6 @@ class NotificationService(val context: Context) {
     }
 
     companion object {
-        private const val DELETE_EXTRA_INSISTENT = "insistent"
-        private const val DELETE_EXTRA_SUBSCRIPTION_ID = "subscriptionId"
-        private const val DELETE_EXTRA_SEQUENCE_ID = "sequenceId"
         const val ACTION_VIEW = "view"
         const val ACTION_HTTP = "http"
         const val ACTION_BROADCAST = "broadcast"
@@ -562,6 +553,9 @@ class NotificationService(val context: Context) {
         const val BROADCAST_TYPE_USER_ACTION = "io.heckel.ntfy.USER_ACTION_RUN"
 
         private const val TAG = "NtfyNotifService"
+        private const val ALERT_CHANNEL_ID = "ntfy-alert"
+        private const val ALERT_NOTIFICATION_ID = 7331
+        private const val ALERT_TIMEOUT_MILLIS = 4000L
 
         const val DEFAULT_GROUP = "ntfy"
         private const val SUBSCRIPTION_GROUP_PREFIX = "ntfy-subscription-"

@@ -179,7 +179,6 @@ class DetailSettingsActivity : AppCompatActivity() {
         private fun loadDedicatedChannelsPrefs() {
             val prefId = context?.getString(R.string.detail_settings_notifications_dedicated_channels_key) ?: return
             val pref: SwitchPreferenceCompat? = findPreference(prefId)
-            pref?.isVisible = true
             pref?.isChecked = subscription.dedicatedChannels
             pref?.preferenceDataStore = object : PreferenceDataStore() {
                 override fun putBoolean(key: String?, value: Boolean) {
@@ -328,7 +327,6 @@ class DetailSettingsActivity : AppCompatActivity() {
         private fun loadInsistentMaxPriorityPref() {
             val prefId = context?.getString(R.string.detail_settings_notifications_insistent_max_priority_key) ?: return
             val pref: ListPreference? = findPreference(prefId)
-            pref?.isVisible = true
             pref?.value = subscription.insistent.toString()
             pref?.preferenceDataStore = object : PreferenceDataStore() {
                 override fun putString(key: String?, value: String?) {

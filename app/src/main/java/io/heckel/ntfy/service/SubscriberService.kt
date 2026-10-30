@@ -36,6 +36,8 @@ import io.heckel.ntfy.util.shortUrl
 import io.heckel.ntfy.util.topicUrl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import java.util.concurrent.ConcurrentHashMap
@@ -76,6 +78,10 @@ class SubscriberService : Service() {
     private val connections = ConcurrentHashMap<ConnectionId, Connection>()
     private var notificationManager: NotificationManager? = null
     private var serviceNotification: Notification? = null
+    private var serviceNotificationTitle = ""
+    private var serviceNotificationText = ""
+    private var unreadCount = 0
+    private var unreadCountJob: Job? = null
     private val refreshMutex = Mutex() // Ensure refreshConnections() is only run one at a time
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -165,13 +171,26 @@ class SubscriberService : Service() {
         wakeLock = (getSystemService(POWER_SERVICE) as PowerManager).run {
             newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKE_LOCK_TAG)
         }
+        unreadCountJob = GlobalScope.launch(Dispatchers.IO) {
+            repository.getUnreadCountFlow().distinctUntilChanged().collect { count -> onUnreadCountChanged(count) }
+        }
         refreshConnections()
+    }
+
+    private fun onUnreadCountChanged(count: Int) {
+        unreadCount = count
+        if (count == 0) {
+            repository.resetUnreadAlert()
+        }
+        serviceNotification = createNotification(serviceNotificationTitle, serviceNotificationText)
+        notificationManager?.notify(NOTIFICATION_SERVICE_ID, serviceNotification)
     }
 
     private fun stopService() {
         Log.d(TAG, "Stopping the foreground service")
 
         // Cancelling all remaining jobs and open HTTP calls
+        unreadCountJob?.cancel()
         connections.values.forEach { connection -> connection.close() }
         connections.clear()
 
@@ -488,24 +507,29 @@ class SubscriberService : Service() {
     }
 
     private fun createNotification(title: String, text: String): Notification {
+        serviceNotificationTitle = title
+        serviceNotificationText = text
         val pendingIntent: PendingIntent = Intent(this, MainActivity::class.java).let { notificationIntent ->
             PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE)
         }
         val markAllReadIntent = PendingIntent.getBroadcast(
             this, 0, Intent(this, MarkAllRead.Receiver::class.java), PendingIntent.FLAG_IMMUTABLE
         )
-        return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
-            .addAction(R.drawable.ic_done_all_white_24dp, getString(R.string.main_menu_mark_all_read), markAllReadIntent)
+        val hasUnread = unreadCount > 0
+        val builder = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification_instant)
             .setColor(Colors.notificationIcon(this))
-            .setContentTitle(title)
-            .setContentText(text)
+            .setContentTitle(if (hasUnread) resources.getQuantityString(R.plurals.channel_subscriber_notification_unread, unreadCount, unreadCount) else title)
+            .setContentText(if (hasUnread) null else text)
             .setContentIntent(pendingIntent)
             .setSound(null)
             .setShowWhen(false) // Don't show date/time
             .setOngoing(true) // Starting SDK 33 / Android 13, foreground notifications can be swiped away
             .setGroup(NOTIFICATION_GROUP_ID) // Do not group with other notifications
-            .build()
+        if (hasUnread) {
+            builder.addAction(R.drawable.ic_done_all_white_24dp, getString(R.string.main_menu_mark_all_read), markAllReadIntent)
+        }
+        return builder.build()
     }
 
     override fun onBind(intent: Intent): IBinder? {

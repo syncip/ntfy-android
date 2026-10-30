@@ -415,25 +415,17 @@
     <!-- Main screen -->
     <string name="main_menu_mark_all_read">Mark all as read</string>
 
-    <!-- Quiet hours -->
-    <string name="settings_notifications_quiet_hours_title">Quiet hours</string>
-    <string name="settings_notifications_quiet_hours_summary_enabled">%1$s – %2$s, notifications arrive silently</string>
-    <string name="settings_notifications_quiet_hours_summary_disabled">Off</string>
-    <string name="settings_notifications_quiet_hours_start_title">Start</string>
-    <string name="settings_notifications_quiet_hours_end_title">End</string>
-    <string name="settings_notifications_quiet_hours_min_priority_title">Still alert for</string>
-    <string name="settings_notifications_quiet_hours_min_priority_default">Default priority and above</string>
-    <string name="settings_notifications_quiet_hours_min_priority_high">High and max priority</string>
-    <string name="settings_notifications_quiet_hours_min_priority_max">Only max priority</string>
-    <string name="settings_notifications_quiet_hours_min_priority_none">Nothing, all silent</string>
+    <string name="channel_alert_name">New notifications</string>
+    <string name="channel_alert_title">New notifications available</string>
+    <plurals name="channel_subscriber_notification_unread">
+        <item quantity="one">%d new notification</item>
+        <item quantity="other">%d new notifications</item>
+    </plurals>
 
     <!-- Read state sync -->
     <string name="settings_notifications_read_sync_title">Sync read state with web app</string>
     <string name="settings_notifications_read_sync_summary_enabled">Messages read here are marked as read in the web app too</string>
     <string name="settings_notifications_read_sync_summary_disabled">Read state stays on this device</string>
-    <string name="settings_notifications_swipe_marks_read_title">Swiping away marks as read</string>
-    <string name="settings_notifications_swipe_marks_read_summary_enabled">Swiping a notification away marks the message as read</string>
-    <string name="settings_notifications_swipe_marks_read_summary_disabled">Only opening a topic marks messages as read</string>
 
     <!-- Account screen -->
     <string name="account_title">Account</string>

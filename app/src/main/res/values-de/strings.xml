@@ -418,25 +418,17 @@
     <!-- Main screen -->
     <string name="main_menu_mark_all_read">Alle als gelesen markieren</string>
 
-    <!-- Quiet hours -->
-    <string name="settings_notifications_quiet_hours_title">Ruhezeiten</string>
-    <string name="settings_notifications_quiet_hours_summary_enabled">%1$s – %2$s, Benachrichtigungen kommen lautlos</string>
-    <string name="settings_notifications_quiet_hours_summary_disabled">Aus</string>
-    <string name="settings_notifications_quiet_hours_start_title">Beginn</string>
-    <string name="settings_notifications_quiet_hours_end_title">Ende</string>
-    <string name="settings_notifications_quiet_hours_min_priority_title">Trotzdem mit Ton</string>
-    <string name="settings_notifications_quiet_hours_min_priority_default">Normale Priorität und höher</string>
-    <string name="settings_notifications_quiet_hours_min_priority_high">Hohe und dringende Priorität</string>
-    <string name="settings_notifications_quiet_hours_min_priority_max">Nur dringende Priorität</string>
-    <string name="settings_notifications_quiet_hours_min_priority_none">Nichts, alles lautlos</string>
+    <string name="channel_alert_name">Neue Benachrichtigungen</string>
+    <string name="channel_alert_title">Neue Benachrichtigungen verfügbar</string>
+    <plurals name="channel_subscriber_notification_unread">
+        <item quantity="one">%d neue Benachrichtigung</item>
+        <item quantity="other">%d neue Benachrichtigungen</item>
+    </plurals>
 
     <!-- Read state sync -->
     <string name="settings_notifications_read_sync_title">Gelesen-Status mit Web-App abgleichen</string>
     <string name="settings_notifications_read_sync_summary_enabled">Gelesenes wird auch in der Web-App als gelesen markiert</string>
     <string name="settings_notifications_read_sync_summary_disabled">Gelesen-Status bleibt auf diesem Gerät</string>
-    <string name="settings_notifications_swipe_marks_read_title">Wegwischen markiert als gelesen</string>
-    <string name="settings_notifications_swipe_marks_read_summary_enabled">Eine weggewischte Benachrichtigung gilt als gelesen</string>
-    <string name="settings_notifications_swipe_marks_read_summary_disabled">Nur das Öffnen eines Themas markiert als gelesen</string>
 
     <!-- Account screen -->
     <string name="account_title">Konto</string>
