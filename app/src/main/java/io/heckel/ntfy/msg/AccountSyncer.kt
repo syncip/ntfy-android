@@ -64,6 +64,7 @@ class AccountSyncer(private val context: Context) {
                 current.addAll(previous.filter { it.accountBaseUrl == user.baseUrl })
                 return@forEach
             }
+            removeTokenExpiry(user, account)
             account.subscriptions.orEmpty().forEach { remote ->
                 val baseUrl = remote.baseUrl?.trimEnd('/')?.ifEmpty { null } ?: user.baseUrl
                 val topic = remote.topic ?: return@forEach
@@ -168,12 +169,23 @@ class AccountSyncer(private val context: Context) {
         }
     }
 
+    /** Tokens of older versions expire after 72 hours; make them permanent while they still work. */
+    private suspend fun removeTokenExpiry(user: User, account: AccountResponse) {
+        val token = account.tokens.orEmpty().firstOrNull { it.token == user.password } ?: return
+        if ((token.expires ?: 0L) == 0L) return
+        try {
+            AccountTokens(context).removeExpiry(user)
+        } catch (e: Exception) {
+            Log.w(TAG, "Unable to remove token expiry for ${user.username}: ${e.message}")
+        }
+    }
+
     private suspend fun fetchAccount(user: User): AccountResponse? {
         val request = HttpUtil.requestBuilder(accountUrl(user.baseUrl), user, repository.getCustomHeaders(user.baseUrl)).build()
         HttpUtil.defaultClient(context, user.baseUrl).newCall(request).execute().use { response ->
             if (response.code == 404) {
                 Log.d(TAG, "Server ${user.baseUrl} has no account API, skipping")
-                return AccountResponse(emptyList()) // Nothing to sync, but the request itself succeeded
+                return AccountResponse(emptyList(), null) // Nothing to sync, but the request itself succeeded
             }
             if (!response.isSuccessful) {
                 throw Exception("Unexpected response ${response.code}")
@@ -225,8 +237,11 @@ class AccountSyncer(private val context: Context) {
     }
 
     private data class AccountResponse(
-        val subscriptions: List<RemoteSubscription>?
+        val subscriptions: List<RemoteSubscription>?,
+        val tokens: List<RemoteToken>?
     )
+
+    private data class RemoteToken(val token: String?, val expires: Long?)
 
     private data class RemoteSubscription(
         @SerializedName("base_url") val baseUrl: String?,

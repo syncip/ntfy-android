@@ -22,6 +22,10 @@ Basis: https://github.com/binwiederhier/ntfy-android (Apache 2.0)
 - Beim Anlegen eines Benutzers meldet sich die App einmal mit dem Kennwort an, erstellt ein
   Zugangs-Token (`POST /v1/account/token`, Bezeichnung „ntfy Sync (Gerätename)“) und speichert nur
   das Token. Das Kennwort wird nie gespeichert.
+- Das Token läuft nie ab (`expires: 0`). Ohne diese Angabe würde der Server es nach 72 Stunden
+  ungültig machen. Noch gültige Tokens älterer App-Versionen stellt der Sync automatisch um
+  (`PATCH /v1/account/token`). Ein bereits abgelaufenes Token lässt sich nicht retten: Dann den
+  Benutzer einmal in den Einstellungen mit Kennwort neu anmelden.
 - Tokens werden als `Authorization: Bearer` gesendet.
 - Beim Löschen oder Ändern eines Benutzers wird das alte Token auf dem Server widerrufen.
 - Bereits gespeicherte Kennwörter werden beim nächsten Sync automatisch durch ein Token ersetzt.

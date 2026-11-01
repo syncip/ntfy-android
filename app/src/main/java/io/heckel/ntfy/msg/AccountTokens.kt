@@ -12,6 +12,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 /**
  * Logs in with username/password once, creates an access token (POST /v1/account/token) and
  * returns a [User] that holds the token instead of the password. The password is never stored.
+ * Tokens never expire: without an explicit expiry, the server would invalidate them after 72 hours.
  *
  * Tokens are sent as "Authorization: Bearer", see [HttpUtil.requestBuilder].
  */
@@ -26,7 +27,7 @@ class AccountTokens(private val context: Context) {
      */
     suspend fun exchangePassword(user: User): User {
         if (isToken(user.password)) return user
-        val body = gson.toJson(TokenRequest(label = tokenLabel()))
+        val body = gson.toJson(TokenRequest(label = tokenLabel(), expires = NEVER_EXPIRES))
         val request = HttpUtil.requestBuilder(tokenUrl(user.baseUrl), user, repository.getCustomHeaders(user.baseUrl))
             .post(body.toRequestBody())
             .build()
@@ -50,6 +51,18 @@ class AccountTokens(private val context: Context) {
         }
     }
 
+    /** Removes the expiry of the token of [user], for tokens created by older versions of the app. */
+    suspend fun removeExpiry(user: User) {
+        val body = gson.toJson(TokenUpdateRequest(token = user.password, expires = NEVER_EXPIRES))
+        val request = HttpUtil.requestBuilder(tokenUrl(user.baseUrl), user, repository.getCustomHeaders(user.baseUrl))
+            .patch(body.toRequestBody())
+            .build()
+        HttpUtil.defaultClient(context, user.baseUrl).newCall(request).execute().use { response ->
+            if (!response.isSuccessful) throw Exception("Unexpected response ${response.code}")
+        }
+        Log.d(TAG, "Removed token expiry for ${user.username} on ${user.baseUrl}")
+    }
+
     /** Revokes the token of [user] on the server. Failures are logged and otherwise ignored. */
     suspend fun revoke(user: User) {
         if (!isToken(user.password)) return
@@ -69,12 +82,14 @@ class AccountTokens(private val context: Context) {
 
     private fun tokenLabel() = "ntfy Sync (${Build.MANUFACTURER} ${Build.MODEL})"
 
-    private data class TokenRequest(val label: String)
+    private data class TokenRequest(val label: String, val expires: Long)
+    private data class TokenUpdateRequest(val token: String, val expires: Long)
     private data class TokenResponse(val token: String?)
 
     companion object {
         private const val TAG = "NtfyAccountTokens"
         private const val TOKEN_PREFIX = "tk_"
+        private const val NEVER_EXPIRES = 0L
 
         fun isToken(password: String) = password.startsWith(TOKEN_PREFIX)
         private fun tokenUrl(baseUrl: String) = "$baseUrl/v1/account/token"
