@@ -206,6 +206,73 @@
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/add_dialog_subscribe_instant_delivery_description"/>
 
+                <LinearLayout
+                    android:id="@+id/add_dialog_reserve_box"
+                    android:orientation="vertical"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:visibility="gone"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/add_dialog_subscribe_foreground_description">
+
+                    <CheckBox
+                        android:id="@+id/add_dialog_reserve_checkbox"
+                        android:text="@string/add_dialog_reserve"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="-3dp"/>
+
+                    <LinearLayout
+                        android:id="@+id/add_dialog_reserve_options"
+                        android:orientation="vertical"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:text="@string/add_dialog_reserve_description"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:paddingStart="4dp"
+                            android:paddingEnd="4dp"/>
+
+                        <RadioGroup
+                            android:id="@+id/add_dialog_reserve_everyone"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:checkedButton="@id/add_dialog_reserve_deny_all">
+
+                            <RadioButton
+                                android:id="@+id/add_dialog_reserve_deny_all"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/account_everyone_deny_all"/>
+
+                            <RadioButton
+                                android:id="@+id/add_dialog_reserve_read_only"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/account_everyone_read_only"/>
+
+                            <RadioButton
+                                android:id="@+id/add_dialog_reserve_write_only"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/account_everyone_write_only"/>
+
+                            <RadioButton
+                                android:id="@+id/add_dialog_reserve_read_write"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/account_everyone_read_write"/>
+
+                        </RadioGroup>
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
                 <ImageView
                     android:id="@+id/add_dialog_subscribe_error_text_image"
                     android:layout_width="20dp"
@@ -226,7 +293,7 @@
                     android:paddingEnd="4dp"
                     android:textAppearance="@style/DangerText"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/add_dialog_subscribe_foreground_description"
+                    app:layout_constraintTop_toBottomOf="@id/add_dialog_reserve_box"
                     app:layout_constraintStart_toEndOf="@id/add_dialog_subscribe_error_text_image"
                     tools:visibility="gone"/>
 

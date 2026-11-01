@@ -58,15 +58,15 @@ object HttpUtil {
      *
      * The 3-minute client ping is only a fallback for the rare case where neither of
      * the above fires: silent server hangs, NAT eviction, asymmetric routing breaks, etc.
-     * We use a long interval so the modem can fully power down between pings, which is
-     * the dominant battery factor for the foreground service.
+     * The server pings every 45s anyway, so the modem wakes up regardless, and 90s adds little.
+     * A dead connection is noticed after 3 minutes at the latest.
      *
      * See discussion in https://github.com/binwiederhier/ntfy-android/pull/113
      */
     suspend fun wsClient(context: Context, baseUrl: String): OkHttpClient {
         return emptyClientBuilder(context, baseUrl)
             .readTimeout(0, TimeUnit.MILLISECONDS)
-            .pingInterval(3, TimeUnit.MINUTES)
+            .pingInterval(90, TimeUnit.SECONDS)
             .connectTimeout(10, TimeUnit.SECONDS)
             .build()
     }

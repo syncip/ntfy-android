@@ -99,7 +99,8 @@ data class ConnectionDetails(
     val state: ConnectionState = ConnectionState.NOT_APPLICABLE,
     val error: Throwable? = null,
     val nextRetryTime: Long = 0L,
-    val disconnectedSince: Long = 0L // ms timestamp we last left CONNECTED (0 = connected); drives the connection-lost alert
+    val disconnectedSince: Long = 0L, // ms timestamp we last left CONNECTED (0 = connected); drives the connection-lost alert
+    val connectedSince: Long = 0L // ms timestamp of the current connection (0 = not connected)
 ) {
     fun getStackTraceString(): String {
         return error?.stackTraceToString() ?: ""
@@ -590,6 +591,12 @@ interface NotificationDao {
     @Query("SELECT * FROM notification WHERE subscriptionId = :subscriptionId AND deleted != 1 ORDER BY timestamp DESC")
     fun listFlow(subscriptionId: Long): Flow<List<Notification>>
 
+    @Query("SELECT * FROM notification WHERE deleted != 1 ORDER BY timestamp DESC")
+    fun listAllFlow(): Flow<List<Notification>>
+
+    @Query("SELECT MAX(timestamp) FROM notification WHERE deleted != 1")
+    suspend fun lastTimestamp(): Long?
+
     @Query("SELECT * FROM notification WHERE notificationId != 0 AND deleted != 1")
     suspend fun listUnread(): List<Notification>
 
@@ -632,6 +639,9 @@ interface NotificationDao {
 
     @Query("UPDATE notification SET notificationId = 0 WHERE subscriptionId = :subscriptionId AND sequenceId = :sequenceId")
     fun markAsReadBySequenceId(subscriptionId: Long, sequenceId: String)
+
+    @Query("UPDATE notification SET notificationId = :androidNotificationId WHERE id = :notificationId")
+    fun updateAndroidNotificationId(notificationId: String, androidNotificationId: Int)
 
     @Query("UPDATE notification SET deleted = 1 WHERE id = :notificationId")
     fun markAsDeleted(notificationId: String)

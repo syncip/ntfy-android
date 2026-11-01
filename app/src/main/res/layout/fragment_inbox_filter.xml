@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="20dp"
+        android:paddingBottom="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/inbox_filter_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/inbox_filter_reset"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/inbox_filter_reset" />
+        </LinearLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/inbox_filter_search_hint"
+            app:endIconMode="clear_text">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/inbox_filter_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:importantForAutofill="no"
+                android:inputType="text"
+                android:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView style="@style/InboxFilterSection" android:text="@string/inbox_filter_section_views" />
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/inbox_filter_views"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView style="@style/InboxFilterSection" android:text="@string/inbox_filter_section_status" />
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/inbox_filter_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView style="@style/InboxFilterSection" android:text="@string/inbox_filter_section_period" />
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/inbox_filter_period"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView style="@style/InboxFilterSection" android:text="@string/inbox_filter_section_time" />
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/inbox_filter_time"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView style="@style/InboxFilterSection" android:text="@string/inbox_filter_section_priority" />
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/inbox_filter_priority"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView style="@style/InboxFilterSection" android:text="@string/inbox_filter_section_topics" />
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/inbox_filter_topics"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView style="@style/InboxFilterSection" android:text="@string/inbox_filter_section_more" />
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/inbox_filter_more"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/inbox_filter_save"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/inbox_filter_save_view" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

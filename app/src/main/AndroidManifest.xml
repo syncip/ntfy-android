@@ -139,6 +139,12 @@
                 android:enabled="true"
                 android:exported="false"/>
 
+        <!-- Reconnect alarm of the WebSocket connection -->
+        <receiver
+                android:name=".service.WsConnection$ReconnectReceiver"
+                android:enabled="true"
+                android:exported="false"/>
+
         <!-- Broadcast receiver for connection alert notification actions (swipe-dismiss, snooze, never) -->
         <receiver
                 android:name=".service.SubscriberService$ConnectionAlertBroadcastReceiver"

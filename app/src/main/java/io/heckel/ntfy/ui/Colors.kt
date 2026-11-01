@@ -3,6 +3,7 @@ package io.heckel.ntfy.ui
 import android.content.Context
 import android.graphics.Color
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
 import com.google.android.material.color.MaterialColors
 import io.heckel.ntfy.R
 import io.heckel.ntfy.util.isDarkThemeOn
@@ -43,6 +44,10 @@ class Colors {
             } else {
                 MaterialColors.getColor(context, R.attr.colorSurfaceContainerHighest, Color.GRAY)
             }
+        }
+
+        fun cardUnreadBackgroundColor(context: Context): Int {
+            return ColorUtils.blendARGB(cardBackgroundColor(context), primary(context), 0.10f)
         }
 
         fun statusBarNormal(context: Context, dynamicColors: Boolean, darkMode: Boolean): Int {

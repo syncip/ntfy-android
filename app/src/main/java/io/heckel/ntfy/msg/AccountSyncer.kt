@@ -187,9 +187,14 @@ class AccountSyncer(private val context: Context) {
                 Log.d(TAG, "Server ${user.baseUrl} has no account API, skipping")
                 return AccountResponse(emptyList(), null) // Nothing to sync, but the request itself succeeded
             }
+            if (response.code == 401) {
+                AuthAlert.onRejected(context, user)
+                throw ApiService.UnauthorizedException(user)
+            }
             if (!response.isSuccessful) {
                 throw Exception("Unexpected response ${response.code}")
             }
+            AuthAlert.onAccepted(context, user)
             return gson.fromJson(response.body.string(), AccountResponse::class.java)
         }
     }
@@ -254,7 +259,8 @@ class AccountSyncer(private val context: Context) {
         private const val SEPARATOR = "\t"
         private val mutex = Mutex()
         private const val MIN_SYNC_INTERVAL_MILLIS = 5 * 60 * 1000L
-        @Volatile private var lastSyncMillis = 0L
+        @Volatile var lastSyncMillis = 0L
+            private set
 
         private fun accountUrl(baseUrl: String) = "$baseUrl/v1/account"
         private fun accountSubscriptionUrl(baseUrl: String) = "$baseUrl/v1/account/subscription"

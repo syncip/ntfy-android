@@ -1,21 +1,18 @@
 package io.heckel.ntfy.ui
 
 import android.Manifest
-import android.animation.Animator
-import android.animation.AnimatorListenerAdapter
-import android.app.AlarmManager
 import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.InsetDrawable
 import android.net.ConnectivityManager
 import android.net.Network
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
-import android.text.method.LinkMovementMethod
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -30,13 +27,14 @@ import androidx.appcompat.view.ActionMode
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
-import androidx.core.text.HtmlCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.updatePadding
 import androidx.core.view.isVisible
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.work.Constraints
@@ -47,6 +45,7 @@ import androidx.work.WorkManager
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.tabs.TabLayout
 import io.heckel.ntfy.BuildConfig
 import io.heckel.ntfy.R
 import io.heckel.ntfy.app.Application
@@ -56,6 +55,7 @@ import io.heckel.ntfy.firebase.FirebaseMessenger
 import io.heckel.ntfy.msg.AccountSyncer
 import io.heckel.ntfy.msg.MarkAllRead
 import io.heckel.ntfy.msg.ApiService
+import io.heckel.ntfy.msg.ConnectionCheck
 import io.heckel.ntfy.msg.DownloadManager
 import io.heckel.ntfy.msg.DownloadType
 import io.heckel.ntfy.msg.NotificationDispatcher
@@ -105,6 +105,12 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
     private lateinit var mainListContainer: SwipeRefreshLayout
     private lateinit var adapter: MainAdapter
     private lateinit var fab: FloatingActionButton
+    private lateinit var tabs: TabLayout
+    private lateinit var inboxContainer: View
+    private lateinit var noEntries: View
+    private var subscriptions: List<Subscription> = emptyList()
+    private val inbox get() = supportFragmentManager.findFragmentById(R.id.main_inbox_fragment) as? InboxFragment
+    private val inboxShown get() = tabs.selectedTabPosition == TAB_MESSAGES
 
     // Other stuff
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
@@ -168,16 +174,16 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         toolbar.setNavigationIconTint(toolbarTextColor)
         toolbar.overflowIcon?.setTint(toolbarTextColor)
         setSupportActionBar(toolbar)
-        title = getString(R.string.main_action_bar_title)
+        title = getString(R.string.app_name)
         
         // Set system status bar appearance
         WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightStatusBars =
             Colors.shouldUseLightStatusBar(dynamicColors, darkMode)
 
-        // Floating action button ("+")
+        // Floating action button (check mark): Applies to what is shown, see updateFab()
         fab = findViewById(R.id.fab)
         fab.setOnClickListener {
-            onSubscribeButtonClick()
+            if (inboxShown) inbox?.markShownAsRead() else onMarkAllReadClick()
         }
         
         // Add bottom padding to FAB to account for navigation bar
@@ -195,7 +201,16 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         mainListContainer.setColorSchemeColors(Colors.swipeToRefreshColor(this))
 
         // Update main list based on viewModel (& its datasource/livedata)
-        val noEntries: View = findViewById(R.id.main_no_subscriptions)
+        noEntries = findViewById(R.id.main_no_subscriptions)
+        inboxContainer = findViewById(R.id.main_inbox_fragment)
+        tabs = findViewById(R.id.main_tabs)
+        val startPage = savedInstanceState?.getInt(STATE_TAB) ?: if (repository.getStartPage() == Repository.START_PAGE_TOPICS) TAB_TOPICS else TAB_MESSAGES
+        tabs.getTabAt(startPage)?.select()
+        tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab) = updatePage()
+            override fun onTabUnselected(tab: TabLayout.Tab) = Unit
+            override fun onTabReselected(tab: TabLayout.Tab) = Unit
+        })
         val onSubscriptionClick = { s: Subscription -> onSubscriptionItemClick(s) }
         val onSubscriptionLongClick = { s: Subscription -> onSubscriptionItemLongClick(s) }
 
@@ -222,14 +237,9 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         viewModel.list().observe(this) {
             it?.let { subscriptions ->
                 // Update main list
+                this.subscriptions = subscriptions
                 adapter.submitList(subscriptions as MutableList<Subscription>)
-                if (it.isEmpty()) {
-                    mainListContainer.visibility = View.GONE
-                    noEntries.visibility = View.VISIBLE
-                } else {
-                    mainListContainer.visibility = View.VISIBLE
-                    noEntries.visibility = View.GONE
-                }
+                updatePage()
 
                 // Add scrub terms to log (in case it gets exported)
                 subscriptions.forEach { s ->
@@ -237,11 +247,8 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
                     Log.addScrubTerm(s.topic)
                 }
 
-                // Update battery banner + WebSocket banner + websocket reconnect banner
                 showHideBatteryBanner(subscriptions)
-                showHideWebSocketBanner(subscriptions)
-                showHideWebSocketReconnectBanner()
-                showHideMarkAllReadMenuItem(subscriptions)
+                updateStatusDot()
             }
         }
 
@@ -272,8 +279,21 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         }
 
         // Observe connection details and update menu item visibility
-        repository.getConnectionDetailsLiveData().observe(this) { details ->
-            showHideConnectionErrorMenuItem(details)
+        repository.getConnectionDetailsLiveData().observe(this) {
+            updateStatusDot()
+        }
+        repository.getAuthFailedBaseUrlsLiveData().observe(this) {
+            updateStatusDot()
+        }
+
+        // The status also depends on time: a short drop only turns red after a while
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                while (true) {
+                    updateStatusDot()
+                    delay(STATUS_UPDATE_INTERVAL_MILLIS)
+                }
+            }
         }
 
         // Battery banner
@@ -285,10 +305,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
             batteryBanner.visibility = View.GONE
             repository.setBatteryOptimizationsRemindTime(Repository.BATTERY_OPTIMIZATIONS_REMIND_TIME_NEVER)
         }
-        askLaterButton.setOnClickListener {
-            batteryBanner.visibility = View.GONE
-            repository.setBatteryOptimizationsRemindTime(System.currentTimeMillis() + ONE_DAY_MILLIS)
-        }
+        askLaterButton.visibility = View.GONE
         fixNowButton.setOnClickListener {
             try {
                 Log.d(TAG, "package:$packageName".toUri().toString())
@@ -308,55 +325,6 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
             // Hide, at least for now
             val batteryBanner = findViewById<View>(R.id.main_banner_battery)
             batteryBanner.visibility = View.GONE
-        }
-
-        // WebSocket banner
-        val wsBanner = findViewById<View>(R.id.main_banner_websocket) // Banner visibility is toggled in onResume()
-        val wsText = findViewById<TextView>(R.id.main_banner_websocket_text)
-        val wsDismissButton = findViewById<Button>(R.id.main_banner_websocket_dontaskagain)
-        val wsRemindButton = findViewById<Button>(R.id.main_banner_websocket_remind_later)
-        val wsEnableButton = findViewById<Button>(R.id.main_banner_websocket_enable)
-        wsText.movementMethod = LinkMovementMethod.getInstance() // Make links clickable
-        wsDismissButton.setOnClickListener {
-            wsBanner.visibility = View.GONE
-            repository.setWebSocketRemindTime(Repository.WEBSOCKET_REMIND_TIME_NEVER)
-        }
-        wsRemindButton.setOnClickListener {
-            wsBanner.visibility = View.GONE
-            repository.setWebSocketRemindTime(System.currentTimeMillis() + ONE_DAY_MILLIS)
-        }
-        wsEnableButton.setOnClickListener {
-            repository.setConnectionProtocol(Repository.CONNECTION_PROTOCOL_WS)
-            SubscriberServiceManager(this).refresh()
-            wsBanner.visibility = View.GONE
-
-            // Maybe show WebSocketReconnectBanner
-            viewModel.list().observe(this) {
-                it?.let { subscriptions ->
-                    showHideWebSocketReconnectBanner()
-                }
-            }
-        }
-
-        // WebSocket Reconnect banner
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val wsReconnectBanner = findViewById<View>(R.id.main_banner_websocket_reconnect)
-            val wsReconnectText = findViewById<TextView>(R.id.main_banner_websocket_reconnect_text)
-            val wsReconnectDismissButton = findViewById<Button>(R.id.main_banner_websocket_reconnect_dontaskagain)
-            val wsReconnectRemindButton = findViewById<Button>(R.id.main_banner_websocket_reconnect_remind_later)
-            val wsReconnectEnableButton = findViewById<Button>(R.id.main_banner_websocket_reconnect_enable)
-            wsReconnectText.movementMethod = LinkMovementMethod.getInstance() // Make links clickable
-            wsReconnectDismissButton.setOnClickListener {
-                wsReconnectBanner.visibility = View.GONE
-                repository.setWebSocketReconnectRemindTime(Repository.WEBSOCKET_RECONNECT_REMIND_TIME_NEVER)
-            }
-            wsReconnectRemindButton.setOnClickListener {
-                wsReconnectBanner.visibility = View.GONE
-                repository.setWebSocketReconnectRemindTime(System.currentTimeMillis() + ONE_DAY_MILLIS)
-            }
-            wsReconnectEnableButton.setOnClickListener {
-                startActivity(Intent(ACTION_REQUEST_SCHEDULE_EXACT_ALARM))
-            }
         }
 
         // Network state banner
@@ -418,10 +386,15 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
     override fun onResume() {
         super.onResume()
         showHideNotificationMenuItems()
-        viewModel.list().value?.let { showHideMarkAllReadMenuItem(it) }
-        showHideConnectionErrorMenuItem(repository.getConnectionDetails())
         showHideNoNetworkBanner()
         redrawList()
+        updatePage()
+
+        // Opening the app must never show a stale state: make sure the service runs, and fetch what it missed
+        SubscriberServiceManager.refresh(this)
+        lifecycleScope.launch(Dispatchers.IO) {
+            ConnectionCheck.checkIfDue(applicationContext)
+        }
     }
 
     private fun showHideBatteryBanner(subscriptions: List<Subscription>) {
@@ -432,41 +405,6 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         val batteryBanner = findViewById<View>(R.id.main_banner_battery)
         batteryBanner.visibility = if (showBanner) View.VISIBLE else View.GONE
         Log.d(TAG, "Battery: ignoring optimizations = $ignoringOptimizations (we want this to be true); instant subscriptions = $hasInstantSubscriptions; remind time reached = $batteryRemindTimeReached; banner = $showBanner")
-    }
-
-    private fun showHideWebSocketBanner(subscriptions: List<Subscription>) {
-        val hasSelfHostedSubscriptions = subscriptions.count { it.baseUrl != appBaseUrl } > 0
-        val usingWebSockets = repository.getConnectionProtocol() == Repository.CONNECTION_PROTOCOL_WS
-        val wsRemindTimeReached = repository.getWebSocketRemindTime() < System.currentTimeMillis()
-        val showBanner = hasSelfHostedSubscriptions && wsRemindTimeReached && !usingWebSockets
-        val wsBanner = findViewById<View>(R.id.main_banner_websocket)
-        if (showBanner) {
-            wsBanner.visibility = View.VISIBLE
-            if (!BuildConfig.PAYMENT_LINKS_AVAILABLE) {
-                // Hide links that lead to payments, see https://github.com/binwiederhier/ntfy/issues/1463
-                // This is a big fat hack, but I have to release this quickly ...
-                val wsBannerMainText = findViewById<TextView>(R.id.main_banner_websocket_text)
-                val raw = getString(R.string.main_banner_websocket_text)
-                val unlinked = raw.replace(Regex("</?a[^>]*>"), "")
-                wsBannerMainText.text = HtmlCompat.fromHtml(unlinked, HtmlCompat.FROM_HTML_MODE_LEGACY)
-            }
-        } else {
-            wsBanner.visibility = View.GONE
-        }
-    }
-
-    private fun showHideWebSocketReconnectBanner() {
-        val wsReconnectBanner = findViewById<View>(R.id.main_banner_websocket_reconnect)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val usingWebSockets = repository.getConnectionProtocol() == Repository.CONNECTION_PROTOCOL_WS
-            val wsReconnectRemindTimeReached = repository.getWebSocketReconnectRemindTime() < System.currentTimeMillis()
-            val canScheduleExactAlarms = (getSystemService(ALARM_SERVICE) as AlarmManager).canScheduleExactAlarms()
-            val showBanner = wsReconnectRemindTimeReached && usingWebSockets && !canScheduleExactAlarms
-            Log.d(TAG, "wsReconnectRemindTimeReached: ${wsReconnectRemindTimeReached}, usingWebSockets: ${usingWebSockets}, canScheduleExactAlarms: ${canScheduleExactAlarms}")
-            wsReconnectBanner.visibility = if (showBanner) View.VISIBLE else View.GONE
-        } else {
-            wsReconnectBanner.visibility = View.GONE
-        }
     }
 
     private fun showHideNoNetworkBanner() {
@@ -547,7 +485,6 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         menuInflater.inflate(R.menu.menu_main_action_bar, menu)
         this.menu = menu
         menu.findItem(R.id.main_menu_account)?.isVisible = hasUsers
-        viewModel.list().value?.let { showHideMarkAllReadMenuItem(it) }
         
         // Tint menu icons based on theme
         val toolbarTextColor = Colors.toolbarTextColor(this, repository.getDynamicColorsEnabled(), isDarkThemeOn(this))
@@ -556,7 +493,8 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         }
         
         showHideNotificationMenuItems()
-        showHideConnectionErrorMenuItem(repository.getConnectionDetails())
+        updatePage()
+        updateStatusDot()
         checkSubscriptionsMuted() // This is done here, because then we know that we've initialized the menu
         return true
     }
@@ -620,15 +558,59 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         }
     }
 
-    private fun showHideConnectionErrorMenuItem(details: Map<String, io.heckel.ntfy.db.ConnectionDetails>) {
-        if (!this::menu.isInitialized) {
-            return
+    private fun updateStatusDot() {
+        if (!this::menu.isInitialized) return
+        val density = resources.displayMetrics.density
+        val dot = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(ConnectionStatus.level(this@MainActivity, repository, subscriptions).color)
+            setStroke((2 * density).toInt(), toolbarIconColor())
+            setSize((16 * density).toInt(), (16 * density).toInt())
         }
-        runOnUiThread {
-            val connectionErrorItem = menu.findItem(R.id.main_menu_connection_error)
-            val hasErrors = details.values.any { it.hasError() }
-            connectionErrorItem?.isVisible = hasErrors
+        menu.findItem(R.id.main_menu_status)?.icon = InsetDrawable(dot, (4 * density).toInt())
+    }
+
+    private fun toolbarIconColor() = Colors.toolbarTextColor(this, repository.getDynamicColorsEnabled(), isDarkThemeOn(this))
+
+    /** Which page is shown, and what the buttons above and below it mean there. */
+    private fun updatePage() {
+        val hasSubscriptions = !subscriptions.isEmpty()
+        inboxContainer.isVisible = inboxShown
+        mainListContainer.isVisible = !inboxShown && hasSubscriptions
+        noEntries.isVisible = !inboxShown && !hasSubscriptions
+        updateFab()
+        updateFilterIcon()
+    }
+
+    private fun updateFab() {
+        val anyUnread = if (inboxShown) {
+            inbox?.shownUnread?.isNotEmpty() == true
+        } else {
+            subscriptions.any { it.newCount > 0 }
         }
+        fab.isVisible = actionMode == null && anyUnread
+    }
+
+    private fun updateFilterIcon() {
+        if (!this::menu.isInitialized) return
+        val item = menu.findItem(R.id.main_menu_filter) ?: return
+        item.isVisible = inboxShown
+        item.setIcon(if (inbox?.filter?.isActive == true) R.drawable.ic_filter_list_active_white_24dp else R.drawable.ic_filter_list_white_24dp)
+        item.icon?.setTint(toolbarIconColor())
+    }
+
+    fun onInboxChanged() {
+        updateFab()
+        updateFilterIcon()
+    }
+
+    fun openTopic(subscription: Subscription) {
+        onSubscriptionItemClick(subscription)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt(STATE_TAB, tabs.selectedTabPosition)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -645,12 +627,24 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
                 onNotificationSettingsClick(enable = true)
                 true
             }
-            R.id.main_menu_connection_error -> {
-                onConnectionErrorClick()
+            R.id.main_menu_status -> {
+                ConnectionStatus.showDetails(this, repository, subscriptions)
                 true
             }
-            R.id.main_menu_mark_all_read -> {
-                onMarkAllReadClick()
+            R.id.main_menu_filter -> {
+                inbox?.openFilter()
+                true
+            }
+            R.id.main_menu_subscribe -> {
+                onSubscribeButtonClick()
+                true
+            }
+            R.id.main_menu_publish -> {
+                onPublishClick()
+                true
+            }
+            R.id.main_menu_start_page -> {
+                onStartPageClick()
                 true
             }
             R.id.main_menu_account -> {
@@ -693,9 +687,34 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         }
     }
 
-    private fun showHideMarkAllReadMenuItem(subscriptions: List<Subscription>) {
-        if (!this::menu.isInitialized) return
-        menu.findItem(R.id.main_menu_mark_all_read)?.isVisible = subscriptions.any { it.newCount > 0 }
+    private fun onPublishClick() {
+        val subscriptions = this.subscriptions.filter { it.upAppId == null }
+        if (subscriptions.isEmpty()) {
+            Toast.makeText(this, R.string.publish_no_topics, Toast.LENGTH_LONG).show()
+            return
+        }
+        val names = subscriptions.map { displayName(appBaseUrl, it) }
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.publish_choose_topic)
+            .setItems(names.toTypedArray()) { _, which ->
+                val subscription = subscriptions[which]
+                PublishFragment
+                    .newInstance(subscription.baseUrl, subscription.topic, names[which])
+                    .show(supportFragmentManager, PublishFragment.TAG)
+            }
+            .show()
+    }
+
+    private fun onStartPageClick() {
+        val pages = listOf(Repository.START_PAGE_MESSAGES, Repository.START_PAGE_TOPICS)
+        val labels = arrayOf(getString(R.string.tab_messages), getString(R.string.tab_topics))
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.main_menu_start_page)
+            .setSingleChoiceItems(labels, pages.indexOf(repository.getStartPage())) { dialog, which ->
+                repository.setStartPage(pages[which])
+                dialog.dismiss()
+            }
+            .show()
     }
 
     private fun onQuitClick() {
@@ -725,12 +744,6 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
             Log.d(TAG, "Re-enabling global notifications")
             onNotificationMutedUntilChanged(Repository.MUTED_UNTIL_SHOW_ALL)
         }
-    }
-
-    private fun onConnectionErrorClick() {
-        Log.d(TAG, "Showing connection error dialog")
-        val connectionErrorFragment = ConnectionErrorFragment.newInstance()
-        connectionErrorFragment.show(supportFragmentManager, ConnectionErrorFragment.TAG)
     }
 
     override fun onNotificationMutedUntilChanged(mutedUntilTimestamp: Long) {
@@ -820,7 +833,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         }
     }
 
-    private fun refreshAllSubscriptions() {
+    fun refreshAllSubscriptions() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 AccountSyncer(this@MainActivity).sync()
@@ -831,6 +844,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
             var errors = 0
             var errorMessage = "" // First error
             var newNotificationsCount = 0
+            val missed = mutableListOf<Subscription>()
             repository.getSubscriptions().forEach { subscription ->
                 Log.d(TAG, "Polling subscription: $subscription")
                 try {
@@ -839,12 +853,14 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
                     newNotifications.forEach { notification ->
                         dispatcher?.dispatch(subscription, notification)
                     }
+                    if (newNotifications.isNotEmpty()) missed.add(subscription)
                 } catch (e: Exception) {
                     val topic = displayName(appBaseUrl, subscription)
                     if (errorMessage == "") errorMessage = "$topic: ${e.message}"
                     errors++
                 }
             }
+            ConnectionCheck.reconnectIfMissed(applicationContext, missed)
             val toastMessage = if (errors > 0) {
                 getString(R.string.refresh_message_error, errors, errorMessage)
             } else if (newNotificationsCount == 0) {
@@ -855,6 +871,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
             runOnUiThread {
                 Toast.makeText(this@MainActivity, toastMessage, Toast.LENGTH_LONG).show()
                 mainListContainer.isRefreshing = false
+                inbox?.setRefreshing(false)
             }
             Log.d(TAG, "Finished polling for new notifications")
         }
@@ -917,18 +934,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
     private fun beginActionMode(subscription: Subscription) {
         actionMode = startSupportActionMode(actionModeCallback)
         adapter.toggleSelection(subscription.id)
-
-            // Fade out FAB
-        fab.alpha = 1f
-        fab
-            .animate()
-            .alpha(0f)
-            .setDuration(ANIMATION_DURATION)
-            .setListener(object : AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: Animator) {
-                    fab.visibility = View.GONE
-                }
-            })
+        updateFab()
     }
 
     private fun finishActionMode() {
@@ -940,19 +946,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         actionMode = null
         adapter.selected.clear()
         redrawList()
-
-        // Fade in FAB
-        fab.alpha = 0f
-        fab.visibility = View.VISIBLE
-        fab
-            .animate()
-            .alpha(1f)
-            .setDuration(ANIMATION_DURATION)
-            .setListener(object : AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: Animator) {
-                    fab.visibility = View.VISIBLE // Required to replace the old listener
-                }
-            })
+        updateFab()
     }
 
     private fun redrawList() {
@@ -1002,14 +996,17 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         const val EXTRA_SUBSCRIPTION_DISPLAY_NAME = "subscriptionDisplayName"
         const val EXTRA_SUBSCRIPTION_INSTANT = "subscriptionInstant"
         const val EXTRA_SUBSCRIPTION_MUTED_UNTIL = "subscriptionMutedUntil"
-        const val ANIMATION_DURATION = 80L
         const val ONE_DAY_MILLIS = 86400000L
+        private const val TAB_MESSAGES = 0
+        private const val TAB_TOPICS = 1
+        private const val STATE_TAB = "tab"
+        private const val STATUS_UPDATE_INTERVAL_MILLIS = 15_000L
 
         // As per documentation: The minimum repeat interval that can be defined is 15 minutes
         // (same as the JobScheduler API), but in practice 15 doesn't work. Using 16 here.
         // Thanks to varunon9 (https://gist.github.com/varunon9/f2beec0a743c96708eb0ef971a9ff9cd) for this!
 
-        const val POLL_WORKER_INTERVAL_MINUTES = 60L
+        const val POLL_WORKER_INTERVAL_MINUTES = 16L // Catches a live connection that died unnoticed, see ConnectionCheck
         const val DELETE_WORKER_INTERVAL_MINUTES = 8 * 60L
         const val SERVICE_START_WORKER_INTERVAL_MINUTES = 30L // Only a safety net; the check itself is cheap
     }

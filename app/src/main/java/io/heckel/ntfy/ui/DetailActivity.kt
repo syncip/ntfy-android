@@ -25,7 +25,6 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -41,7 +40,7 @@ import io.heckel.ntfy.msg.AccountSyncer
 import io.heckel.ntfy.msg.ApiService
 import io.heckel.ntfy.msg.NotificationService
 import io.heckel.ntfy.msg.Poller
-import io.heckel.ntfy.msg.ReadSync
+import io.heckel.ntfy.msg.MessageActions
 import io.heckel.ntfy.service.SubscriberServiceManager
 import io.heckel.ntfy.util.Log
 import io.heckel.ntfy.util.copyToClipboard
@@ -67,8 +66,10 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.textfield.TextInputEditText
 import android.widget.ImageButton
 import com.google.android.material.color.MaterialColors
+import java.util.concurrent.ConcurrentHashMap
 
 class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSettingsListener, PublishFragment.PublishListener {
+    private val keepUnread = ConcurrentHashMap.newKeySet<String>() // Marked as unread here: leaving the topic must not undo that
     private val viewModel by viewModels<DetailViewModel> {
         DetailViewModelFactory((application as Application).repository)
     }
@@ -354,28 +355,34 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
             }
         }
 
-        // Swipe to remove
-        val itemTouchCallback = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
-            override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
-                return false
-            }
-            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, swipeDir: Int) {
-                val notification = adapter.get(viewHolder.absoluteAdapterPosition)
-                lifecycleScope.launch(Dispatchers.IO) {
-                    repository.markAsDeleted(notification.id)
+        // Swipe to the right toggles read/unread, swipe to the left removes
+        val onToggleRead = { notification: Notification ->
+            lifecycleScope.launch(Dispatchers.IO) {
+                if (notification.notificationId != 0) {
+                    keepUnread.remove(notification.id)
+                    MessageActions.markRead(applicationContext, listOf(notification))
+                } else {
+                    keepUnread.add(notification.id)
+                    MessageActions.markUnread(applicationContext, listOf(notification))
                 }
-                val snackbar = Snackbar.make(mainList, R.string.detail_item_snack_deleted, Snackbar.LENGTH_SHORT)
-                snackbar.setAction(R.string.detail_item_snack_undo) {
-                    lifecycleScope.launch(Dispatchers.IO) {
-                        // Note: undo only restores the latest notification, not the entire sequence
-                        repository.undeleteNotification(notification.id)
-                    }
-                }
-                snackbar.show()
             }
+            Unit
         }
-        val itemTouchHelper = ItemTouchHelper(itemTouchCallback)
-        itemTouchHelper.attachToRecyclerView(mainList)
+        val onDelete = { notification: Notification ->
+            lifecycleScope.launch(Dispatchers.IO) {
+                repository.markAsDeleted(notification.id)
+            }
+            val snackbar = Snackbar.make(mainList, R.string.detail_item_snack_deleted, Snackbar.LENGTH_SHORT)
+            snackbar.setAction(R.string.detail_item_snack_undo) {
+                lifecycleScope.launch(Dispatchers.IO) {
+                    // Note: undo only restores the latest notification, not the entire sequence
+                    repository.undeleteNotification(notification.id)
+                }
+            }
+            snackbar.show()
+            Unit
+        }
+        MessageSwipe(this, { adapter.get(it) }, onToggleRead, onDelete).attachTo(mainList)
 
         // Scroll up when new notification is added
         adapter.registerAdapterDataObserver(object : RecyclerView.AdapterDataObserver() {
@@ -551,9 +558,8 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
         GlobalScope.launch(Dispatchers.IO) {
             // Note: This is here and not in onDestroy/onStop, because we want to clear notifications as early
             // as possible, so that we don't see the "new" bubble in the main list anymore.
-            val unread = repository.getUnreadNotifications().filter { it.subscriptionId == subscriptionId }
-            ReadSync.onRead(applicationContext, subscriptionBaseUrl, subscriptionTopic, unread) // Mark as read in the web app too
-            repository.markAllAsRead(subscriptionId)
+            val unread = repository.getUnreadNotifications().filter { it.subscriptionId == subscriptionId && it.id !in keepUnread }
+            MessageActions.markRead(applicationContext, unread) // Mark as read in the web app too
         }
         Log.d(TAG, "onPause hook: Marking subscription $subscriptionId as 'not open'")
         repository.detailViewSubscriptionId.set(0) // Mark as closed

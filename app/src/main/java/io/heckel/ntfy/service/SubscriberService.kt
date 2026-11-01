@@ -177,6 +177,7 @@ class SubscriberService : Service() {
         }
         Log.d(TAG, "Starting the foreground service task")
         isServiceStarted = true
+        running = true
         wakeLock = (getSystemService(POWER_SERVICE) as PowerManager).run {
             newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKE_LOCK_TAG)
         }
@@ -216,6 +217,7 @@ class SubscriberService : Service() {
         }
 
         isServiceStarted = false
+        running = false
     }
 
     private fun refreshConnections() {
@@ -309,7 +311,7 @@ class SubscriberService : Service() {
             val connection = if (connectionId.connectionProtocol == Repository.CONNECTION_PROTOCOL_WS) {
                 val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
                 val httpClient = HttpUtil.wsClient(this, connectionId.baseUrl)
-                WsConnection(connectionId, repository, httpClient, user, customHeaders, ::onConnectionDetailsChanged, ::onNotificationReceived, alarmManager)
+                WsConnection(connectionId, repository, httpClient, user, customHeaders, ::onConnectionDetailsChanged, ::onNotificationReceived, alarmManager, applicationContext)
             } else {
                 JsonConnection(connectionId, repository, api, user, ::onConnectionDetailsChanged, ::onNotificationReceived, serviceActive)
             }
@@ -365,6 +367,16 @@ class SubscriberService : Service() {
             }
         } else if (throwable != null) {
             maybeShowConnectionAlert()
+            if (throwable is NotAuthorizedException) {
+                // The account check tells apart a rejected login from a topic this user may not read
+                GlobalScope.launch(Dispatchers.IO) {
+                    try {
+                        AccountSyncer(this@SubscriberService).syncIfDue()
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Account sync failed: ${e.message}")
+                    }
+                }
+            }
         }
     }
 
@@ -609,6 +621,9 @@ class SubscriberService : Service() {
         const val TAG = "NtfySubscriberService"
         const val SERVICE_START_WORKER_VERSION = BuildConfig.VERSION_CODE
         const val SERVICE_START_WORKER_WORK_NAME_PERIODIC = "NtfyAutoRestartWorkerPeriodic" // Do not change!
+
+        @Volatile var running = false // Shown by the status dot on the main screen
+            private set
 
         private const val ONE_HOUR_SECONDS = 60 * 60L
         private const val ONE_HOUR_MILLIS = ONE_HOUR_SECONDS * 1000L

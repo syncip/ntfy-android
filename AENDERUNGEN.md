@@ -144,3 +144,14 @@ git push origin main
 APK nach dem Bauen: `app/build/outputs/apk/fdroid/release/app-fdroid-release.apk`
 
 Fertig gebaute APK zum Installieren: `apk/ntfy-sync.apk` (nicht im Git; nach einem Build von Hand aus dem Build-Ordner kopieren)
+
+## Zuverlässigkeit, Status und neue Hauptseite (Version 65)
+
+- **Benachrichtigungen:** Trennt der Server die WebSocket-Verbindung sauber, verbindet die App jetzt von selbst neu. Der Neuverbindungs-Alarm läuft auch im Doze-Modus. Der Client-Ping liegt bei 90 Sekunden. Beim Öffnen der App und alle 16 Minuten wird nach verpassten Nachrichten gesucht; wurden welche gefunden, wird die Verbindung neu aufgebaut.
+- **Abgelehnte Anmeldung:** Lehnt der Server den Token ab, erscheint eine Warnung mit Weg zur neuen Anmeldung.
+- **Status-Punkt im Header:** grün, gelb oder rot, mit Details per Tippen.
+- **Seite „Alle Nachrichten“:** Startseite (im Menü umstellbar), ungelesene Nachrichten oben, Topic im Kopf jeder Nachricht.
+- **Filter:** Status, Zeitraum, Uhrzeit, Priorität, Topics, Text, Inhalt und eigene Schnellansichten. Der Filter bleibt gespeichert.
+- **Wischen:** nach rechts gelesen/ungelesen, nach links löschen mit Rückgängig.
+- **Häkchen-Taste:** markiert nur, was gerade sichtbar ist.
+- **Menü:** Thema abonnieren (optional mit Reservierung), Nachricht senden, Startseite.

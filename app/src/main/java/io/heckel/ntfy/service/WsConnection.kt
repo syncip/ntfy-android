@@ -1,6 +1,10 @@
 package io.heckel.ntfy.service
 
 import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
 import android.os.Build
 import io.heckel.ntfy.db.ConnectionState
 import io.heckel.ntfy.db.CustomHeader
@@ -24,6 +28,7 @@ import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import java.util.Calendar
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 
 /**
@@ -44,7 +49,8 @@ class WsConnection(
     private val customHeaders: List<CustomHeader>,
     private val connectionDetailsListener: (String, ConnectionState, Throwable?, Long) -> Unit,
     private val notificationListener: (Subscription, Notification) -> Unit,
-    private val alarmManager: AlarmManager
+    private val alarmManager: AlarmManager,
+    private val context: Context
 ) : Connection {
     private val parser = NotificationParser()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -86,6 +92,7 @@ class WsConnection(
     @Synchronized
     override fun close() {
         closed = true
+        SCHEDULED.remove(globalId)
         scope.cancel()
         if (webSocket == null) {
             Log.d(TAG,"$shortUrl (gid=$globalId): Not closing existing connection, because there is no active web socket")
@@ -107,29 +114,40 @@ class WsConnection(
         Log.d(TAG,"$shortUrl (gid=$globalId): Scheduling a restart in $seconds seconds (via alarm manager)")
         val reconnectTime = Calendar.getInstance()
         reconnectTime.add(Calendar.SECOND, seconds)
-        // The AlarmManager callback runs on the main thread, but start() accesses the database,
-        // so we dispatch to a background thread using the connection's own scope.
-        val startOnBackgroundThread = { scope.launch { start() } }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (alarmManager.canScheduleExactAlarms()) {
-                alarmManager.setExact(
-                    AlarmManager.RTC_WAKEUP,
-                    reconnectTime.timeInMillis,
-                    RECONNECT_TAG,
-                    { startOnBackgroundThread() },
-                    null
-                )
-            } else {
-                Log.d(TAG, "SCHEDULE_EXACT_ALARM permission denied: Failed to reschedule websocket connection")
-            }
+        // Must fire in Doze too: a plain exact alarm would wait for the next maintenance window, and
+        // until then there is no connection at all. Only the PendingIntent variant can do that.
+        SCHEDULED[globalId] = this
+        val intent = Intent(context, ReconnectReceiver::class.java).putExtra(EXTRA_GLOBAL_ID, globalId)
+        val pendingIntent = PendingIntent.getBroadcast(context, globalId.toInt(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || alarmManager.canScheduleExactAlarms()) {
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, reconnectTime.timeInMillis, pendingIntent)
         } else {
-            alarmManager.setExact(
-                AlarmManager.RTC_WAKEUP,
-                reconnectTime.timeInMillis,
-                RECONNECT_TAG,
-                { startOnBackgroundThread() },
-                null
-            )
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, reconnectTime.timeInMillis, pendingIntent)
+        }
+    }
+
+    private fun reconnectAfterClose() {
+        if (closed || state == State.Scheduled) return
+        state = State.Disconnected
+        errorCount++
+        val retrySeconds = RETRY_SECONDS.getOrNull(errorCount-1) ?: RETRY_SECONDS.last()
+        connectionDetailsListener(baseUrl, ConnectionState.CONNECTING, null, System.currentTimeMillis() + (retrySeconds * 1000L))
+        scheduleReconnect(retrySeconds)
+    }
+
+    /** Fired by the reconnect alarm, see [scheduleReconnect]. */
+    class ReconnectReceiver : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val connection = SCHEDULED.remove(intent.getLongExtra(EXTRA_GLOBAL_ID, 0L)) ?: return
+            val pendingResult = goAsync()
+            // start() accesses the database, so we dispatch to a background thread
+            connection.scope.launch {
+                try {
+                    connection.start()
+                } finally {
+                    pendingResult.finish()
+                }
+            }
         }
     }
 
@@ -162,10 +180,20 @@ class WsConnection(
             }
         }
 
+        // The peer (server or proxy) closed the connection. Nothing arrives on this socket anymore, but
+        // without acting here we would still consider ourselves connected until a ping fails.
+        override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+            synchronize("onClosing") {
+                Log.w(TAG, "$shortUrl (gid=$globalId, lid=$id): Closed by peer (code $code): $reason")
+                webSocket.close(WS_CLOSE_NORMAL, "")
+                reconnectAfterClose()
+            }
+        }
+
         override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
             synchronize("onClosed") {
                 Log.w(TAG, "$shortUrl (gid=$globalId, lid=$id): Closed connection")
-                state = State.Disconnected
+                reconnectAfterClose()
             }
         }
 
@@ -217,9 +245,10 @@ class WsConnection(
 
     companion object {
         private const val TAG = "NtfyWsConnection"
-        private const val RECONNECT_TAG = "WsReconnect"
+        private const val EXTRA_GLOBAL_ID = "globalId"
         private const val WS_CLOSE_NORMAL = 1000
         private val RETRY_SECONDS = listOf(5, 10, 15, 20, 30, 45, 60, 120)
         private val GLOBAL_ID = AtomicLong(0)
+        private val SCHEDULED = ConcurrentHashMap<Long, WsConnection>() // Connections waiting for their reconnect alarm
     }
 }

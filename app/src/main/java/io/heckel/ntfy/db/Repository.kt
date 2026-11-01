@@ -18,6 +18,7 @@ import io.heckel.ntfy.util.Log
 import io.heckel.ntfy.util.validUrl
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.random.Random
 
 class Repository(private val sharedPrefs: SharedPreferences, database: Database) {
     private val subscriptionDao = database.subscriptionDao()
@@ -30,6 +31,7 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
     private val connectionDetails = ConcurrentHashMap<String, ConnectionDetails>()
     private val connectionDetailsLiveData = MutableLiveData<Map<String, ConnectionDetails>>(connectionDetails)
     private val connectionForceReconnectVersions = ConcurrentHashMap<String, Long>() // Base URL -> Number of times "Retry" was pressed
+    private val authFailedBaseUrlsLiveData = MutableLiveData(getAuthFailedBaseUrls())
 
     // TODO Move these into an ApplicationState singleton
     val detailViewSubscriptionId = AtomicLong(0L) // Omg, what a hack ...
@@ -125,8 +127,16 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         notificationDao.clearIconUri(uri)
     }
 
+    suspend fun getLastNotificationTimestamp(): Long {
+        return notificationDao.lastTimestamp() ?: 0L
+    }
+
     fun getUnreadCountFlow(): Flow<Int> {
         return notificationDao.unreadCountFlow()
+    }
+
+    fun getAllNotificationsLiveData(): LiveData<List<Notification>> {
+        return notificationDao.listAllFlow().asLiveData()
     }
 
     fun getNotificationsLiveData(subscriptionId: Long): LiveData<List<Notification>> {
@@ -198,6 +208,15 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         notificationDao.markAsReadBySequenceId(subscriptionId, sequenceId)
     }
 
+    fun markAsRead(notificationId: String) {
+        notificationDao.updateAndroidNotificationId(notificationId, 0)
+    }
+
+    /** "Unread" means having an Android notification ID; no popup is shown for this one. */
+    fun markAsUnread(notificationId: String) {
+        notificationDao.updateAndroidNotificationId(notificationId, Random.nextInt(1, Int.MAX_VALUE))
+    }
+
     fun markAsDeletedIfOlderThan(subscriptionId: Long, olderThanTimestamp: Long) {
         notificationDao.markAsDeletedIfOlderThan(subscriptionId, olderThanTimestamp)
     }
@@ -228,6 +247,7 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
 
     suspend fun deleteUser(baseUrl: String) {
         userDao.delete(baseUrl)
+        setAuthFailedBaseUrls(getAuthFailedBaseUrls() - baseUrl)
     }
 
     // Trusted certificates
@@ -464,6 +484,52 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         }
     }
 
+    /** Base URLs whose stored token or password was rejected by the server. */
+    fun getAuthFailedBaseUrls(): Set<String> {
+        return sharedPrefs.getStringSet(SHARED_PREFS_AUTH_FAILED_BASE_URLS, null)?.toSet() ?: emptySet()
+    }
+
+    fun setAuthFailedBaseUrls(baseUrls: Set<String>) {
+        sharedPrefs.edit {
+            putStringSet(SHARED_PREFS_AUTH_FAILED_BASE_URLS, baseUrls)
+        }
+        authFailedBaseUrlsLiveData.postValue(baseUrls)
+    }
+
+    fun getAuthFailedBaseUrlsLiveData(): LiveData<Set<String>> {
+        return authFailedBaseUrlsLiveData
+    }
+
+    fun getStartPage(): String {
+        return sharedPrefs.getString(SHARED_PREFS_START_PAGE, null) ?: START_PAGE_MESSAGES
+    }
+
+    fun setStartPage(startPage: String) {
+        sharedPrefs.edit {
+            putString(SHARED_PREFS_START_PAGE, startPage)
+        }
+    }
+
+    fun getInboxFilter(): String? {
+        return sharedPrefs.getString(SHARED_PREFS_INBOX_FILTER, null)
+    }
+
+    fun setInboxFilter(filter: String) {
+        sharedPrefs.edit {
+            putString(SHARED_PREFS_INBOX_FILTER, filter)
+        }
+    }
+
+    fun getInboxViews(): String? {
+        return sharedPrefs.getString(SHARED_PREFS_INBOX_VIEWS, null)
+    }
+
+    fun setInboxViews(views: String) {
+        sharedPrefs.edit {
+            putString(SHARED_PREFS_INBOX_VIEWS, views)
+        }
+    }
+
     fun getMessageBarEnabled(): Boolean {
         return sharedPrefs.getBoolean(SHARED_PREFS_MESSAGE_BAR_ENABLED, true) // Enabled by default
     }
@@ -667,7 +733,12 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
             current != null && current.disconnectedSince > 0L -> current.disconnectedSince // preserve episode start
             else -> System.currentTimeMillis() // first tick of a new disconnection episode
         }
-        val details = ConnectionDetails(state, error, nextRetryTime, disconnectedSince)
+        val connectedSince = when {
+            state != ConnectionState.CONNECTED -> 0L
+            current != null && current.connectedSince > 0L -> current.connectedSince
+            else -> System.currentTimeMillis()
+        }
+        val details = ConnectionDetails(state, error, nextRetryTime, disconnectedSince, connectedSince)
         if (current != details) {
             if (state == ConnectionState.NOT_APPLICABLE && error == null) {
                 connectionDetails.remove(baseUrl)
@@ -723,6 +794,10 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         const val SHARED_PREFS_APP_QUIT = "AppQuit"
         const val SHARED_PREFS_SWIPE_MARKS_READ = "SwipeMarksRead"
         const val SHARED_PREFS_ACCOUNT_SYNCED_TOPICS = "AccountSyncedTopics"
+        const val SHARED_PREFS_AUTH_FAILED_BASE_URLS = "AuthFailedBaseUrls"
+        const val SHARED_PREFS_START_PAGE = "StartPage"
+        const val SHARED_PREFS_INBOX_FILTER = "InboxFilter"
+        const val SHARED_PREFS_INBOX_VIEWS = "InboxViews"
         const val SHARED_PREFS_BATTERY_OPTIMIZATIONS_REMIND_TIME = "BatteryOptimizationsRemindTime" // Timestamp as millis
         const val SHARED_PREFS_WEBSOCKET_REMIND_TIME = "JsonStreamRemindTime" // "Use WebSocket" banner (used to be JSON stream deprecation banner), timestamp as millis
         const val SHARED_PREFS_WEBSOCKET_RECONNECT_REMIND_TIME = "WebSocketReconnectRemindTime" // Timestamp as millis
@@ -768,6 +843,9 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         const val CONNECTION_ALERT_THREE_HOURS_SECONDS = 3 * ONE_HOUR_SECONDS
         const val CONNECTION_ALERT_TWELVE_HOURS_SECONDS = 12 * ONE_HOUR_SECONDS
         const val CONNECTION_ALERT_DEFAULT = CONNECTION_ALERT_NEVER
+
+        const val START_PAGE_MESSAGES = "messages"
+        const val START_PAGE_TOPICS = "topics"
 
         const val CONNECTION_PROTOCOL_JSONHTTP = "jsonhttp"
         const val CONNECTION_PROTOCOL_WS = "ws"

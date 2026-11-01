@@ -102,7 +102,7 @@
                 style="@style/BannerCardStyle"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" app:layout_constraintTop_toBottomOf="@+id/main_banner_battery"
-                android:id="@+id/main_banner_websocket" android:visibility="visible">
+                android:id="@+id/main_banner_websocket" android:visibility="gone">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                     android:layout_width="match_parent"
@@ -170,7 +170,7 @@
             style="@style/BannerCardStyle"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" app:layout_constraintTop_toBottomOf="@+id/main_banner_websocket"
-            android:id="@+id/main_banner_websocket_reconnect" android:visibility="visible">
+            android:id="@+id/main_banner_websocket_reconnect" android:visibility="gone">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
@@ -254,6 +254,33 @@
                 android:drawablePadding="4dp" />
         </FrameLayout>
 
+        <com.google.android.material.tabs.TabLayout
+                android:id="@+id/main_tabs"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/main_banner_no_network">
+            <com.google.android.material.tabs.TabItem
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/tab_messages"/>
+            <com.google.android.material.tabs.TabItem
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/tab_topics"/>
+        </com.google.android.material.tabs.TabLayout>
+
+        <androidx.fragment.app.FragmentContainerView
+                android:id="@+id/main_inbox_fragment"
+                android:name="io.heckel.ntfy.ui.InboxFragment"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/main_tabs"/>
+
         <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
                 android:id="@+id/main_subscriptions_list_container"
                 android:layout_width="match_parent"
@@ -261,7 +288,7 @@
                 android:visibility="visible"
                 app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/main_banner_no_network">
+                app:layout_constraintTop_toBottomOf="@id/main_tabs">
             <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/main_subscriptions_list"
                     android:layout_width="match_parent"
@@ -278,9 +305,9 @@
         <LinearLayout
                 android:orientation="vertical"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content" app:layout_constraintTop_toTopOf="parent"
+                android:layout_height="wrap_content" app:layout_constraintTop_toBottomOf="@id/main_tabs"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintBottom_toTopOf="@+id/fab" app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent"
                 android:id="@+id/main_no_subscriptions" android:visibility="gone">
             <ImageView
                     android:layout_width="match_parent"
@@ -319,8 +346,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_margin="24dp"
-                android:contentDescription="@string/main_add_button_description"
-                android:src="@drawable/ic_add_black_24dp"
+                android:contentDescription="@string/main_menu_mark_all_read"
+                android:visibility="gone"
+                android:src="@drawable/ic_done_all_white_24dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 style="@style/FloatingActionButton"

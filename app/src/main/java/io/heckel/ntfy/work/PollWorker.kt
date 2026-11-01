@@ -7,6 +7,7 @@ import io.heckel.ntfy.BuildConfig
 import io.heckel.ntfy.db.Repository
 import io.heckel.ntfy.msg.AccountSyncer
 import io.heckel.ntfy.msg.ApiService
+import io.heckel.ntfy.msg.ConnectionCheck
 import io.heckel.ntfy.msg.NotificationDispatcher
 import io.heckel.ntfy.msg.Poller
 import io.heckel.ntfy.util.Log
@@ -29,25 +30,12 @@ class PollWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
             if (repository.getAppQuit()) {
                 return@withContext Result.success()
             }
-            val dispatcher = NotificationDispatcher(applicationContext, repository)
-            val api = ApiService(applicationContext)
-            val poller = Poller(api, repository)
-
             val baseUrl = inputData.getString(INPUT_DATA_BASE_URL)
             val topic = inputData.getString(INPUT_DATA_TOPIC)
-            val subscriptions = if (baseUrl != null && topic != null) {
+            if (baseUrl != null && topic != null) {
+                val dispatcher = NotificationDispatcher(applicationContext, repository)
+                val poller = Poller(ApiService(applicationContext), repository)
                 val subscription = repository.getSubscription(baseUrl, topic) ?: return@withContext Result.success()
-                listOf(subscription)
-            } else {
-                try {
-                    AccountSyncer(applicationContext).sync() // Pick up topics subscribed via the web app
-                } catch (e: Exception) {
-                    Log.w(TAG, "Account sync failed: ${e.message}")
-                }
-                repository.getSubscriptions()
-            }
-
-            subscriptions.forEach{ subscription ->
                 try {
                     val newNotifications = poller.poll(subscription)
                     newNotifications.forEach { notification ->
@@ -56,6 +44,13 @@ class PollWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed checking messages: ${e.message}", e)
                 }
+            } else {
+                try {
+                    AccountSyncer(applicationContext).syncIfDue() // Pick up topics subscribed via the web app
+                } catch (e: Exception) {
+                    Log.w(TAG, "Account sync failed: ${e.message}")
+                }
+                ConnectionCheck.check(applicationContext)
             }
             Log.d(TAG, "Finished polling for new notifications")
             return@withContext Result.success()

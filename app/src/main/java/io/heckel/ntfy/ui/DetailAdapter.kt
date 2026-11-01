@@ -5,9 +5,14 @@ import android.app.Activity
 import android.content.*
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Typeface
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
+import android.text.style.StyleSpan
 import android.text.util.Linkify
 import android.view.LayoutInflater
 import android.view.View
@@ -43,7 +48,15 @@ import kotlinx.coroutines.launch
 import me.saket.bettermovementmethod.BetterLinkMovementMethod
 import androidx.core.net.toUri
 
-class DetailAdapter(private val activity: Activity, private val lifecycleScope: CoroutineScope, private val repository: Repository, private val onClick: (Notification) -> Unit, private val onLongClick: (Notification) -> Unit) :
+class DetailAdapter(
+    private val activity: Activity,
+    private val lifecycleScope: CoroutineScope,
+    private val repository: Repository,
+    private val onClick: (Notification) -> Unit,
+    private val onLongClick: (Notification) -> Unit,
+    private val topicName: (Notification) -> String? = { null }, // Lists with several topics show the topic
+    private val onTopicClick: ((Notification) -> Unit)? = null
+) :
     ListAdapter<Notification, DetailAdapter.DetailViewHolder>(TopicDiffCallback) {
     private val markwon: Markwon = MarkwonFactory.createForMessage(activity)
     val selected = mutableSetOf<String>() // Notification IDs
@@ -52,7 +65,7 @@ class DetailAdapter(private val activity: Activity, private val lifecycleScope: 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DetailViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.fragment_detail_item, parent, false)
-        return DetailViewHolder(activity, lifecycleScope, repository, markwon, view, selected, onClick, onLongClick)
+        return DetailViewHolder(activity, lifecycleScope, repository, markwon, view, selected, onClick, onLongClick, topicName, onTopicClick)
     }
 
     /* Gets current topic and uses it to bind view. */
@@ -87,7 +100,9 @@ class DetailAdapter(private val activity: Activity, private val lifecycleScope: 
         itemView: View,
         private val selected: Set<String>,
         val onClick: (Notification) -> Unit,
-        val onLongClick: (Notification) -> Unit
+        val onLongClick: (Notification) -> Unit,
+        private val topicName: (Notification) -> String?,
+        private val onTopicClick: ((Notification) -> Unit)?
     ) :
         RecyclerView.ViewHolder(itemView) {
         private var notification: Notification? = null
@@ -99,6 +114,7 @@ class DetailAdapter(private val activity: Activity, private val lifecycleScope: 
         private val messageView: TextView = itemView.findViewById(R.id.detail_item_message_text)
         private val iconView: ImageView = itemView.findViewById(R.id.detail_item_icon)
         private val newDotImageView: View = itemView.findViewById(R.id.detail_item_new_dot)
+        private val unreadBarView: View = itemView.findViewById(R.id.detail_item_unread_bar)
         private val tagsView: TextView = itemView.findViewById(R.id.detail_item_tags_text)
         private val menuButton: ImageButton = itemView.findViewById(R.id.detail_item_menu_button)
         private val attachmentImageView: ImageView = itemView.findViewById(R.id.detail_item_attachment_image)
@@ -115,7 +131,7 @@ class DetailAdapter(private val activity: Activity, private val lifecycleScope: 
             val unmatchedTags = unmatchedTags(splitTags(notification.tags))
             val message = maybeAppendActionErrors(formatMessage(notification), notification)
 
-            dateView.text = formatDateWithSeconds(notification.timestamp)
+            renderDate(context, notification)
             if (notification.isMarkdown()) {
                 messageView.autoLinkMask = 0
                 markwon.setMarkdown(messageView, message.toString())
@@ -135,7 +151,12 @@ class DetailAdapter(private val activity: Activity, private val lifecycleScope: 
             messageView.setOnLongClickListener {
                 onLongClick(notification); true
             }
-            newDotImageView.visibility = if (notification.notificationId == 0) View.GONE else View.VISIBLE
+            val unread = notification.notificationId != 0
+            newDotImageView.visibility = if (unread) View.VISIBLE else View.GONE
+            unreadBarView.visibility = if (unread) View.VISIBLE else View.GONE
+            messageView.alpha = if (unread) 1f else READ_TEXT_ALPHA
+            titleView.alpha = messageView.alpha
+            titleView.setTypeface(null, if (unread) Typeface.BOLD else Typeface.NORMAL)
             cardView.setOnClickListener { onClick(notification) }
             cardView.setOnLongClickListener { onLongClick(notification); true }
             if (notification.title != "") {
@@ -152,6 +173,8 @@ class DetailAdapter(private val activity: Activity, private val lifecycleScope: 
             }
             if (selected.contains(notification.id)) {
                 cardView.setCardBackgroundColor(Colors.cardSelectedBackgroundColor(context))
+            } else if (unread) {
+                cardView.setCardBackgroundColor(Colors.cardUnreadBackgroundColor(context))
             } else {
                 cardView.setCardBackgroundColor(Colors.cardBackgroundColor(context))
             }
@@ -164,6 +187,21 @@ class DetailAdapter(private val activity: Activity, private val lifecycleScope: 
             maybeRenderAttachment(context, notification, attachmentFileStat)
             maybeRenderIcon(context, notification, iconFileStat)
             maybeRenderActions(context, notification)
+        }
+
+        private fun renderDate(context: Context, notification: Notification) {
+            val date = formatDateWithSeconds(notification.timestamp)
+            val topic = topicName(notification)
+            if (topic == null) {
+                dateView.text = date
+                return
+            }
+            val text = SpannableString("$date · $topic")
+            val start = text.length - topic.length
+            text.setSpan(ForegroundColorSpan(Colors.primary(context)), start, text.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            text.setSpan(StyleSpan(Typeface.BOLD), start, text.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            dateView.text = text
+            dateView.setOnClickListener { onTopicClick?.invoke(notification) }
         }
 
         private fun maybeMarkdown(message: String, notification: Notification): CharSequence {
@@ -570,6 +608,7 @@ class DetailAdapter(private val activity: Activity, private val lifecycleScope: 
     companion object {
         const val TAG = "NtfyDetailAdapter"
         const val REQUEST_CODE_WRITE_STORAGE_PERMISSION_FOR_DOWNLOAD = 9876
+        private const val READ_TEXT_ALPHA = 0.7f
         const val IMAGE_PREVIEW_MAX_BYTES = 5 * 1024 * 1024 // Too large images crash the app with "Canvas: trying to draw too large(233280000bytes) bitmap."
     }
 }

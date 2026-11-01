@@ -18,6 +18,7 @@ import io.heckel.ntfy.BuildConfig
 import io.heckel.ntfy.R
 import io.heckel.ntfy.db.Repository
 import io.heckel.ntfy.db.User
+import io.heckel.ntfy.msg.AccountApi
 import io.heckel.ntfy.msg.AccountTokens
 import io.heckel.ntfy.msg.ApiService
 import io.heckel.ntfy.util.CertUtil
@@ -56,6 +57,11 @@ class AddFragment : DialogFragment(), TrustedCertificateFragment.TrustedCertific
     private lateinit var subscribeProgress: ProgressBar
     private lateinit var subscribeErrorText: TextView
     private lateinit var subscribeErrorTextImage: View
+    private lateinit var reserveBox: View
+    private lateinit var reserveCheckbox: CheckBox
+    private lateinit var reserveOptions: View
+    private lateinit var reserveEveryone: RadioGroup
+    private var hasAccount = false
 
     // Login page
     private lateinit var loginUsernameText: TextInputEditText
@@ -127,6 +133,13 @@ class AddFragment : DialogFragment(), TrustedCertificateFragment.TrustedCertific
         subscribeErrorText.visibility = View.GONE
         subscribeErrorTextImage = view.findViewById(R.id.add_dialog_subscribe_error_text_image)
         subscribeErrorTextImage.visibility = View.GONE
+        reserveBox = view.findViewById(R.id.add_dialog_reserve_box)
+        reserveCheckbox = view.findViewById(R.id.add_dialog_reserve_checkbox)
+        reserveOptions = view.findViewById(R.id.add_dialog_reserve_options)
+        reserveEveryone = view.findViewById(R.id.add_dialog_reserve_everyone)
+        reserveCheckbox.setOnCheckedChangeListener { _, _ ->
+            validateInputSubscribeView()
+        }
 
         // Fields for "login page"
         loginUsernameText = view.findViewById(R.id.add_dialog_login_username)
@@ -154,9 +167,12 @@ class AddFragment : DialogFragment(), TrustedCertificateFragment.TrustedCertific
             } else {
                 baseUrlsRaw.sorted()
             }
+            val account = repository.getUser(defaultBaseUrl ?: appBaseUrl)
             val activity = activity ?: return@launch // We may have pressed "Cancel"
             activity.runOnUiThread {
                 initBaseUrlDropdown(baseUrls, subscribeBaseUrlText, subscribeBaseUrlLayout)
+                hasAccount = account != null
+                validateInputSubscribeView()
             }
         }
 
@@ -231,6 +247,9 @@ class AddFragment : DialogFragment(), TrustedCertificateFragment.TrustedCertific
                 val authorized = api.checkAuth(baseUrl, topic, user)
                 if (authorized) {
                     Log.d(TAG, "Access granted to topic ${topicUrl(baseUrl, topic)}")
+                    if (user != null && reserveBox.isVisible && reserveCheckbox.isChecked) {
+                        AccountApi(requireContext()).addReservation(user, topic, reserveEveryoneValue())
+                    }
                     dismissDialog()
                 } else {
                     if (user != null) {
@@ -259,6 +278,15 @@ class AddFragment : DialogFragment(), TrustedCertificateFragment.TrustedCertific
         }
     }
     
+    private fun reserveEveryoneValue(): String {
+        return when (reserveEveryone.checkedRadioButtonId) {
+            R.id.add_dialog_reserve_read_only -> AccountApi.EVERYONE_READ_ONLY
+            R.id.add_dialog_reserve_write_only -> AccountApi.EVERYONE_WRITE_ONLY
+            R.id.add_dialog_reserve_read_write -> AccountApi.EVERYONE_READ_WRITE
+            else -> AccountApi.EVERYONE_DENY_ALL
+        }
+    }
+
     private fun isSSLException(e: Exception): Boolean {
         var cause: Throwable? = e
         while (cause != null) {
@@ -391,6 +419,8 @@ class AddFragment : DialogFragment(), TrustedCertificateFragment.TrustedCertific
             subscribeInstantDeliveryDescription.visibility = View.GONE
             subscribeForegroundDescription.visibility = if (BuildConfig.FIREBASE_AVAILABLE) View.VISIBLE else View.GONE
         }
+        reserveBox.isVisible = hasAccount && !subscribeUseAnotherServerCheckbox.isChecked
+        reserveOptions.isVisible = reserveCheckbox.isChecked
 
         // Enable/disable "Subscribe" button
         lifecycleScope.launch(Dispatchers.IO) {

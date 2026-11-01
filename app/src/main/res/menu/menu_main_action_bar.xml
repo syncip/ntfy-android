@@ -2,16 +2,14 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
-        android:id="@+id/main_menu_connection_error"
-        android:icon="@drawable/ic_warning_white_24dp"
-        android:title="@string/main_menu_connection_error"
-        android:visible="false"
+        android:id="@+id/main_menu_status"
+        android:icon="@drawable/ic_status_dot_24dp"
+        android:title="@string/status_menu"
         app:showAsAction="always" />
     <item
-        android:id="@+id/main_menu_mark_all_read"
-        android:icon="@drawable/ic_done_all_white_24dp"
-        android:title="@string/main_menu_mark_all_read"
-        android:visible="false"
+        android:id="@+id/main_menu_filter"
+        android:icon="@drawable/ic_filter_list_white_24dp"
+        android:title="@string/inbox_filter_menu"
         app:showAsAction="always" />
     <item
         android:id="@+id/main_menu_notifications_enabled"
@@ -28,6 +26,15 @@
         android:icon="@drawable/ic_notifications_off_white_outline_24dp"
         android:title="@string/detail_menu_notifications_disabled_forever"
         app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/main_menu_subscribe"
+        android:title="@string/main_menu_subscribe" />
+    <item
+        android:id="@+id/main_menu_publish"
+        android:title="@string/main_menu_publish" />
+    <item
+        android:id="@+id/main_menu_start_page"
+        android:title="@string/main_menu_start_page" />
     <item
         android:id="@+id/main_menu_account"
         android:title="@string/account_title"
