@@ -127,10 +127,14 @@ Diesen Ordner komplett sichern (z. B. Passwort-Manager oder verschlüsselter USB
 lassen sich installierte Apps nicht mehr aktualisieren, nur deinstallieren und neu installieren.
 Anderen Speicherort nutzen: in `local.properties` `ntfySync.keystoreProperties=<pfad>` eintragen.
 
+## Repository
+Fork auf GitHub (öffentlich): https://github.com/syncip/ntfy-android
+
 ## Updates vom Original übernehmen
 ```
 git fetch upstream
 git merge upstream/main
+git push origin main
 ```
 
 ## Bauen
